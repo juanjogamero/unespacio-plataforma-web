@@ -1,6 +1,6 @@
 # Preparación para un piloto comercial de Unespacio
 
-**Actualizado:** 23 de noviembre de 2026 · versión 0.10.0.  
+**Actualizado:** 23 de noviembre de 2026 · versión 0.11.0.  
 **Estado:** hoja de ruta y controles. No es una declaración de que el SaaS esté listo para venderse.
 
 ## Qué se ha implementado y qué se ha verificado
@@ -46,4 +46,14 @@ Los objetivos son hipótesis para medir, no resultados logrados.
 
 ## Regla de publicación
 
-GitHub Pages es **solo una demo**. El servidor real se podrá habilitar para clientes únicamente cuando un responsable haya comprobado los bloqueadores anteriores en un entorno apropiado. No promocionar la versión 0.10.0 como producto de producción ni introducir datos reales en la demo.
+GitHub Pages es **solo una demo**. El servidor real se podrá habilitar para clientes únicamente cuando un responsable haya comprobado los bloqueadores anteriores en un entorno apropiado. No promocionar la versión 0.11.0 como producto de producción ni introducir datos reales en la demo.
+
+## Automatizaciones opcionales incorporadas en 0.11.0
+
+**Demostración pública:** se puede activar o desactivar la preparación de recordatorios, generar el resumen de mañana y apuntar clientes ficticios a una lista de espera. Si se cancela una cita, la demo muestra coincidencias y mensajes preparados para copiar. **No envía correos ni WhatsApps.**
+
+**Aplicación privada (código, sin desplegar):** preferencias de automatización por negocio, avisos al propietario por nuevas solicitudes, recordatorios de cita 24 h antes con email y consentimiento, resumen diario y aviso al primer cliente de lista de espera compatible tras cancelación. Los emails se almacenan en cola PostgreSQL y requieren worker SMTP independiente configurado.
+
+**Riesgos/bloqueadores específicos antes de activar envíos:** proveedor SMTP con dominio autenticado (SPF/DKIM/DMARC), política de privacidad, consentimiento registrable, procedimiento de bajas y revocación, supervisión de fallos de entrega, límites de abuso y revisión del sistema de reintentos para evitar mensajes duplicados. No enviar mensajes a clientes solo por disponer de su teléfono o email.
+
+Las nuevas automatizaciones son una mejora de producto **implementada y comprobada en pruebas**; todavía no se han enviado emails a usuarios reales ni se han medido su efecto sobre cancelaciones, asistencia o ocupación.
