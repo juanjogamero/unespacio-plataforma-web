@@ -37,6 +37,9 @@ export async function agenda(businessId,day){
  return rows(database(),"SELECT a.id,a.day::text,a.start_min,a.end_min,a.source,a.status,c.id AS customer_id,c.name AS customer_name,p.id AS professional_id,p.name AS professional_name,s.id AS service_id,s.name AS service_name,s.price_cents FROM appointments a JOIN customers c ON c.id=a.customer_id AND c.business_id=a.business_id JOIN professionals p ON p.id=a.professional_id AND p.business_id=a.business_id JOIN services s ON s.id=a.service_id AND s.business_id=a.business_id WHERE a.business_id=$1 AND a.day=$2::date ORDER BY a.start_min",[businessId,day]);
 }
 async function windowRules(db,businessId,professionalId,serviceId,day,time,excludeId=null){
+ assert(validDay(day),'Fecha incorrecta');
+ // Serializa altas y cierres del mismo negocio y día; la exclusión GiST es la última garantía.
+ await db.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',[businessId,day]);
  assert(validUUID(professionalId)&&validUUID(serviceId),'Profesional o servicio incorrecto');
  const service=await one(db,'SELECT id,minutes,active FROM services WHERE business_id=$1 AND id=$2',[businessId,serviceId]);
  const professional=await one(db,'SELECT id,active FROM professionals WHERE business_id=$1 AND id=$2',[businessId,professionalId]);
