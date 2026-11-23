@@ -21,8 +21,8 @@ let publicSlots:string[]=[];
 let selectedSlot='';
 let publicParams={serviceId:'',professionalId:'',day:dayOffset(1)};
 const escape=(v:unknown)=>String(v??'').replace(/[&<>"']/g,k=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]??k));
-const time=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-const money=c=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(c/100);
+const time=(m:number)=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const money=(c:number)=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(c/100);
 const val=(form:HTMLFormElement,key:string)=>String(new FormData(form).get(key)??'').trim();
 function setError(e:unknown){error=e instanceof Error?e.message:'No se pudo completar la operación';message='';render()}
 async function request<T=unknown>(path:string,options:{method?:string;body?:unknown}={}):Promise<T>{
