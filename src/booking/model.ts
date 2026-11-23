@@ -8,10 +8,12 @@ export interface Appointment {id:string;clientId:string;serviceId:string;profess
 export interface HourBlock {open:string;close:string}
 export interface Closure {id:string;day:string;reason:string;professionalId:string|null}
 export interface BusinessSettings {name:string;slug:string;timezone:string;hours:Record<string,HourBlock[]>;closures:Closure[]}
-export interface DemoData {services:Service[];professionals:Professional[];clients:Client[];appointments:Appointment[];settings:BusinessSettings}
+export interface WaitEntry {id:string;clientId:string;serviceId:string;professionalId:string;day:string;from:string;to:string;active:boolean}
+export interface AutomationSettings {reminders:boolean;dailySummary:boolean;waitlist:boolean}
+export interface DemoData {services:Service[];professionals:Professional[];clients:Client[];appointments:Appointment[];settings:BusinessSettings;waitlist:WaitEntry[];automation:AutomationSettings}
 export interface BookingInput {clientId:string;serviceId:string;professionalId:string;day:string;time:string;channel:Channel}
 export const CHANNEL_LABEL:Record<Channel,string>={telefono:'Teléfono',whatsapp:'WhatsApp',local:'En el local',online:'Online'};
-export const STORAGE_KEY='unespacio.citas.demo.v2';
+export const STORAGE_KEY='unespacio.citas.demo.v3';
 export const DEFAULT_HOURS:Record<string,HourBlock[]>={
  '0':[],'1':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
  '2':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
@@ -40,7 +42,7 @@ export function seedData(today=dayOffset()):DemoData{
   {id:'a4',clientId:'c4',serviceId:'s4',professionalId:'p2',day:shiftDay(today,1),time:'10:30',channel:'online',status:'confirmada'},
   {id:'a5',clientId:'c1',serviceId:'s1',professionalId:'p1',day:shiftDay(today,-21),time:'11:30',channel:'telefono',status:'confirmada'}
  ];
- return {services,professionals,clients,appointments,settings:{name:'Barbería del Barrio',slug:'barberia-del-barrio',timezone:'Europe/Madrid',hours:structuredClone(DEFAULT_HOURS),closures:[]}};
+ return {services,professionals,clients,appointments,waitlist:[{id:'w1',clientId:'c2',serviceId:'s1',professionalId:'p1',day:today,from:'09:00',to:'13:00',active:true}],automation:{reminders:true,dailySummary:true,waitlist:true},settings:{name:'Barbería del Barrio',slug:'barberia-del-barrio',timezone:'Europe/Madrid',hours:structuredClone(DEFAULT_HOURS),closures:[]}};
 }
 function isData(v:unknown):v is DemoData{
  if(!v||typeof v!=='object')return false;
@@ -52,6 +54,8 @@ export function loadDemo():DemoData{
   const existing=data as DemoData;
   if(!existing.settings||typeof existing.settings!=='object')existing.settings=seedData().settings;
   if(!existing.settings.hours||!existing.settings.closures)existing.settings=seedData().settings;
+  if(!Array.isArray(existing.waitlist))existing.waitlist=[];
+  if(!existing.automation)existing.automation={reminders:true,dailySummary:true,waitlist:true};
   return existing;
  }}}catch{}
  return seedData();
@@ -143,4 +147,38 @@ export function availableTimes(db:DemoData,day:string,professionalId:string,serv
 }
 export function latestForClient(db:DemoData,clientId:string):Appointment|undefined{
  return sortedAppointments(db).filter(a=>a.clientId===clientId).sort((a,b)=>(b.day+b.time).localeCompare(a.day+a.time))[0];
+}
+
+/** Las automatizaciones de esta demostración solo PREPARAN acciones locales: nunca envían mensajes. */
+export function addWaitEntry(db:DemoData,input:Omit<WaitEntry,'id'|'active'>):{ok:boolean;message:string}{
+ if(!db.clients.some(c=>c.id===input.clientId))return {ok:false,message:'Selecciona un cliente.'};
+ if(!db.services.some(s=>s.id===input.serviceId)||!db.professionals.some(p=>p.id===input.professionalId))return {ok:false,message:'Servicio o profesional incorrecto.'};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(input.day)||localISO(parseDay(input.day))!==input.day)return {ok:false,message:'Fecha incorrecta.'};
+ const from=timeMinutes(input.from),to=timeMinutes(input.to);
+ if(!/^\d{2}:\d{2}$/.test(input.from)||!/^\d{2}:\d{2}$/.test(input.to)||from<0||to>1440||to-from<15)return {ok:false,message:'Indica una franja horaria válida.'};
+ if(db.waitlist.some(w=>w.active&&w.clientId===input.clientId&&w.day===input.day&&w.serviceId===input.serviceId))return {ok:false,message:'Ese cliente ya está esperando ese servicio ese día.'};
+ db.waitlist.push({...input,id:uid(),active:true});
+ return {ok:true,message:'Cliente añadido a la lista de espera.'};
+}
+export function availableWaitMatches(db:DemoData):{entry:WaitEntry;time:string}[]{
+ if(!db.automation.waitlist)return [];
+ const results:{entry:WaitEntry;time:string}[]=[];
+ for(const entry of db.waitlist.filter(w=>w.active)){
+  const duration=db.services.find(s=>s.id===entry.serviceId)?.minutes??999;
+  const matching=availableTimes(db,entry.day,entry.professionalId,entry.serviceId).filter(t=>timeMinutes(t)>=timeMinutes(entry.from)&&timeMinutes(t)+duration<=timeMinutes(entry.to));
+  // No proponemos huecos sin cancelación real para no generar alarmas artificiales:
+  // la lista de espera solo sugiere huecos que han quedado libres por cancelación.
+  const cancellations=db.appointments.filter(a=>a.status==='cancelada'&&a.day===entry.day&&a.professionalId===entry.professionalId);
+  const time=matching.find(t=>cancellations.some(a=>timeMinutes(t)<timeMinutes(a.time)+(db.services.find(s=>s.id===a.serviceId)?.minutes??0)&&timeMinutes(t)+duration>timeMinutes(a.time)));
+  if(time)results.push({entry,time});
+ }
+ return results;
+}
+export function nextDayReminders(db:DemoData,today=dayOffset()):Appointment[]{
+ if(!db.automation.reminders)return [];
+ return sortedAppointments(db,shiftDay(today,1));
+}
+export function tomorrowSummary(db:DemoData,today=dayOffset()):string{
+ const day=shiftDay(today,1),appts=sortedAppointments(db,day);
+ return 'Agenda de mañana ('+formatDay(day)+')\n'+(appts.length?appts.map(a=>a.time+' · '+db.clients.find(c=>c.id===a.clientId)?.name+' · '+db.services.find(s=>s.id===a.serviceId)?.name+' · '+db.professionals.find(p=>p.id===a.professionalId)?.name).join('\n'):'No hay citas confirmadas.');
 }
