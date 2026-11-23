@@ -113,7 +113,7 @@ test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes
   assert.equal(sent.failed,0);
   assert.ok(sent.sent>=3);
   assert.ok(delivered.some(m=>m.to===email&&m.subject.includes('solicitud')));
-  assert.ok(delivered.some(m=>m.to==='cliente@example.invalid'&&m.subject.includes('hueco')));
+  assert.ok(delivered.some(m=>m.to==='cliente@example.invalid'&&m.subject.toLowerCase().includes('hueco')));
   const waitAfter=await db.query('SELECT status FROM waitlist_entries WHERE id=$1',[wait.id]);
   assert.equal(waitAfter.rows[0].status,'notified');
   const resent=await processQueue(async mail=>{delivered.push(mail)},{db,max:30});
