@@ -88,7 +88,7 @@ export function setHours(db:DemoData,weekdayNumber:number,blocks:HourBlock[]):{o
  const sorted=[...blocks].sort((a,b)=>timeMinutes(a.open)-timeMinutes(b.open));
  let previousEnd=0;
  for(const b of sorted){
-  if(!/^\\d{2}:\\d{2}$/.test(b.open)||!/^\\d{2}:\\d{2}$/.test(b.close))return {ok:false,message:'Escribe una hora válida.'};
+  if(!/^\d{2}:\d{2}$/.test(b.open)||!/^\d{2}:\d{2}$/.test(b.close))return {ok:false,message:'Escribe una hora válida.'};
   const start=timeMinutes(b.open),end=timeMinutes(b.close);
   if(start<0||end>1440||end-start<15||start<previousEnd)return {ok:false,message:'Los turnos no deben solaparse y deben durar al menos 15 minutos.'};
   previousEnd=end;
@@ -97,7 +97,7 @@ export function setHours(db:DemoData,weekdayNumber:number,blocks:HourBlock[]):{o
  return {ok:true,message:'Horario actualizado.'};
 }
 export function addClosure(db:DemoData,day:string,reason:string,professionalId:string|null=null):{ok:boolean;message:string}{
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)||localISO(parseDay(day))!==day)return {ok:false,message:'Fecha no válida.'};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||localISO(parseDay(day))!==day)return {ok:false,message:'Fecha no válida.'};
  if(professionalId!==null&&!db.professionals.some(p=>p.id===professionalId))return {ok:false,message:'Profesional desconocido.'};
  if(db.settings.closures.some(c=>c.day===day&&c.professionalId===professionalId))return {ok:false,message:'Ese cierre ya está registrado.'};
  db.settings.closures.push({id:uid(),day,reason:reason.trim().slice(0,120)||'Día no disponible',professionalId});
