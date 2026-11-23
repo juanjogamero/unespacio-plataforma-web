@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {seedData,saveAppointment,cancelAppointment,sortedAppointments,createClient,createService,conflict,availableTimes,shiftDay,dayOffset,latestForClient} from '../dist/assets/js/booking/model.js';
+import {seedData,saveAppointment,cancelAppointment,sortedAppointments,createClient,createService,conflict,availableTimes,shiftDay,dayOffset,latestForClient,setHours,addClosure,withinOpeningHours,openingBlocks,weekday} from '../dist/assets/js/booking/model.js';
 const mk=()=>seedData('2026-11-23');
 const booking=(changes={})=>({clientId:'c1',serviceId:'s1',professionalId:'p1',day:'2026-11-25',time:'10:00',channel:'telefono',...changes});
 test('La demo se inicia con una agenda unificada de cuatro canales',()=>{
@@ -66,4 +66,28 @@ test('La web pública solo carga la nueva interfaz de citas',()=>{
  assert.doesNotMatch(html,/Aula|alumno|enseñanza|refined.css|studio.css/i);
  const boot=readFileSync(new URL('../dist/assets/js/main.js',import.meta.url),'utf8');
  assert.match(boot,/booking\/app\.js/);
+});
+
+test('Horarios partidos: no acepta citas durante el descanso de mediodía',()=>{
+ const db=mk();assert.equal(weekday('2026-11-25'),3);
+ assert.equal(withinOpeningHours(db,'2026-11-25','13:30',30,'p1'),true);
+ assert.equal(withinOpeningHours(db,'2026-11-25','14:30',30,'p1'),false);
+ assert.equal(saveAppointment(db,booking({time:'14:30'})).ok,false);
+});
+test('Modificar horario cambia la lista de huecos disponibles',()=>{
+ const db=mk();const day='2026-11-25';
+ assert.ok(availableTimes(db,day,'p1','s1').includes('11:00'));
+ const result=setHours(db,3,[{open:'10:00',close:'12:00'}]);
+ assert.equal(result.ok,true);
+ assert.equal(availableTimes(db,day,'p1','s1').includes('09:00'),false);
+ assert.ok(availableTimes(db,day,'p1','s1').includes('11:00'));
+ assert.equal(setHours(db,3,[{open:'10:00',close:'13:00'},{open:'12:00',close:'14:00'}]).ok,false);
+});
+test('Vacaciones del negocio y ausencias individuales bloquean nuevas citas',()=>{
+ const db=mk();const day='2026-11-25';
+ assert.equal(addClosure(db,day,'Día festivo','p1').ok,true);
+ assert.equal(saveAppointment(db,booking()).ok,false);
+ assert.equal(saveAppointment(db,booking({professionalId:'p2'})).ok,true);
+ assert.equal(addClosure(db,'2026-11-26','Cerrado').ok,true);
+ assert.equal(availableTimes(db,'2026-11-26','p2','s1').length,0);
 });
