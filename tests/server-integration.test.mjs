@@ -67,6 +67,11 @@ test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes
    const privateDay=await fetch(base+'/api/v1/agenda?day='+day,{headers:{cookie}});
    assert.equal(privateDay.status,200);
    assert.equal((await privateDay.json()).appointments.length,3);
+   const last=await fetch(base+'/api/v1/clients/'+c+'/last',{headers:{cookie}});
+   assert.equal(last.status,200);
+   assert.equal((await last.json()).last.startMinute,960);
+   const foreign=await fetch(base+'/api/v1/clients/'+c2+'/last',{headers:{cookie}});
+   assert.equal(foreign.status,404);
    const publicView=await fetch(base+'/r/'+slug);
    assert.equal(publicView.status,200);
    assert.match(await publicView.text(),/Unespacio · Agenda de citas/);
