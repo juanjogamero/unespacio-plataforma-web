@@ -155,3 +155,9 @@ Se prohíbe utilizar datos reales en esta demo. Los ejemplos precargados son fic
 - Autenticación y aislamiento de negocios.
 - Reserva online externa, disponible para cualquier cliente.
 - Integración oficial con WhatsApp.
+
+## 10. Avance técnico 0.10.0 (23/11/2026)
+
+Se ha implementado una primera **agenda semanal y configuración de horarios** en la demo. Además, se ha añadido una aplicación privada separada con una API Node.js y esquema PostgreSQL para negocios, sesiones, propietarios/profesionales, clientes y solicitudes online pendientes de confirmación. La base de datos dispone de una restricción transaccional que impide dobles reservas confirmadas para el mismo profesional y franja horaria.
+
+**Precisión de estado:** el código del backend se verifica en GitHub Actions, pero **NO hay un servidor de producción alojado ni una base de datos comercial conectada**. Las reservas entre dispositivos y los datos personales reales siguen fuera de la demostración GitHub Pages. Ver [preparación del piloto](preparacion-piloto.md).
