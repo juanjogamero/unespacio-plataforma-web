@@ -1,12 +1,13 @@
-import {CHANNEL_LABEL,availableTimes,cancelAppointment,createClient,createService,dayOffset,formatDay,latestForClient,loadDemo,persistDemo,resetDemo,saveAppointment,seedData,shiftDay,sortedAppointments,timeMinutes,minutesTime,type BookingInput,type Channel,type DemoData,type Preference} from './model.js';
+import {CHANNEL_LABEL,availableTimes,cancelAppointment,createClient,createService,dayOffset,formatDay,latestForClient,loadDemo,persistDemo,resetDemo,saveAppointment,seedData,shiftDay,sortedAppointments,timeMinutes,minutesTime,setHours,addClosure,weekday,WEEKDAYS,type BookingInput,type Channel,type DemoData,type Preference} from './model.js';
 
-type Page='agenda'|'clientes'|'servicios'|'reservar';
+type Page='agenda'|'clientes'|'servicios'|'reservar'|'horarios';
 type Dialog={kind:'cita';id?:string;prefill?:Partial<BookingInput>}|{kind:'cliente';id?:string}|{kind:'servicio';id?:string}|null;
 const app=document.getElementById('app');
 let db:DemoData=loadDemo();
 let page:Page='agenda';
 let day=dayOffset();
 let professionalFilter='todos';
+let calendarMode:'dia'|'semana'='dia';
 let dialog:Dialog=null;
 let flash='';
 let onlineService=db.services[0]?.id??'';
@@ -46,13 +47,13 @@ const sortedToday=()=>sortedAppointments(db,day).filter(a=>professionalFilter===
 const count=(source:Channel)=>sortedAppointments(db,day).filter(a=>a.channel===source).length;
 function announcement(message:string){flash=message;render()}
 function setPage(next:Page){page=next;dialog=null;window.location.hash='/'+next;render()}
-function routePage():Page{const hash=location.hash.replace(/^#\/?/,'');return ['agenda','clientes','servicios','reservar'].includes(hash)?hash as Page:'agenda'}
+function routePage():Page{const hash=location.hash.replace(/^#\/?/,'');return ['agenda','clientes','servicios','reservar','horarios'].includes(hash)?hash as Page:'agenda'}
 function shell():string{
- const routes:{id:Page;title:string;icon:string}[]=[{id:'agenda',title:'Agenda',icon:'calendar'},{id:'clientes',title:'Clientes',icon:'users'},{id:'servicios',title:'Servicios',icon:'scissors'},{id:'reservar',title:'Reserva online',icon:'link'}];
+ const routes:{id:Page;title:string;icon:string}[]=[{id:'agenda',title:'Agenda',icon:'calendar'},{id:'clientes',title:'Clientes',icon:'users'},{id:'servicios',title:'Servicios',icon:'scissors'},{id:'reservar',title:'Reserva online',icon:'link'},{id:'horarios',title:'Horarios',icon:'clock'}];
  const nav=routes.map(r=>'<button type="button" class="nav-link '+(page===r.id?'active':'')+'" data-page="'+r.id+'" '+(page===r.id?'aria-current="page"':'')+'>'+icon(r.icon)+'<span>'+r.title+'</span></button>').join('');
- const titles:Record<Page,string>={agenda:'Agenda de citas',clientes:'Clientes habituales',servicios:'Servicios',reservar:'Reserva online'};
- const content=page==='agenda'?agendaView():page==='clientes'?clientsView():page==='servicios'?servicesView():onlineView();
- return '<div class="app-shell"><aside class="sidebar"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>unespacio<small>GESTIÓN DE CITAS</small></span></div><div class="place-card"><span class="place-dot"></span><div><strong>Barbería del Barrio</strong><small>Negocio de demostración</small></div></div><p class="nav-label">TU ESPACIO</p><nav aria-label="Navegación principal">'+nav+'</nav><div class="sidebar-bottom"><div class="quiet-mark">'+icon('check')+' Sin complicaciones</div><small>Unespacio · versión de prueba</small></div></aside>'+
+ const titles:Record<Page,string>={agenda:'Agenda de citas',clientes:'Clientes habituales',servicios:'Servicios',reservar:'Reserva online',horarios:'Horarios y cierres'};
+ const content=page==='agenda'?agendaView():page==='clientes'?clientsView():page==='servicios'?servicesView():page==='horarios'?hoursView():onlineView();
+ return '<div class="app-shell"><aside class="sidebar"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>unespacio<small>GESTIÓN DE CITAS</small></span></div><div class="place-card"><span class="place-dot"></span><div><strong>'+esc(db.settings.name)+'</strong><small>Negocio de demostración</small></div></div><p class="nav-label">TU ESPACIO</p><nav aria-label="Navegación principal">'+nav+'</nav><div class="sidebar-bottom"><div class="quiet-mark">'+icon('check')+' Sin complicaciones</div><small>Unespacio · versión de prueba</small></div></aside>'+
  '<div class="workspace"><div class="mobile-brand"><span class="brand-mark"></span><strong>unespacio</strong><span class="demo-tag">DEMO</span></div><header class="topbar"><div class="breadcrumb">MI NEGOCIO <span>/</span> <strong>'+titles[page]+'</strong></div><div class="top-actions"><span class="date-label">'+esc(formatDay(day,{day:'numeric',month:'short',year:'numeric'}))+'</span><span class="avatar" aria-label="Negocio de demostración">BB</span></div></header>'+
  '<div class="demo-note" role="note">'+icon('spark')+' <span><strong>Entorno de demostración.</strong> Los nombres son ficticios y los cambios se guardan solo en este navegador. No introduzcas datos reales.</span><button type="button" data-action="reset" title="Restablecer datos de ejemplo">'+icon('rotate')+'<span>Reiniciar demo</span></button></div>'+
  '<main class="main-content" id="main-content">'+content+'</main><div class="mobile-nav" aria-label="Navegación móvil">'+nav+'</div></div>'+
@@ -61,9 +62,12 @@ function shell():string{
 function pageHeading(kicker:string,title:string,description:string,action=''):string{return '<section class="page-heading"><div><span class="kicker">'+kicker+'</span><h1>'+title+'</h1><p>'+description+'</p></div>'+action+'</section>'}
 function agendaView():string{
  const appointments=sortedToday();
+ const monday=shiftDay(day,-((weekday(day)+6)%7));
+ const weekDays=Array.from({length:7},(_,i)=>shiftDay(monday,i));
+ const weekCards=weekDays.map(date=>{const listed=sortedAppointments(db,date).filter(a=>professionalFilter==='todos'||a.professionalId===professionalFilter);return '<button type="button" class="week-day '+(day===date?'selected':'')+'" data-action="select-day" data-day="'+date+'"><span>'+esc(formatDay(date,{weekday:'short'}))+'</span><strong>'+esc(formatDay(date,{day:'numeric'}))+'</strong><small>'+listed.length+' cita'+(listed.length!==1?'s':'')+'</small>'+listed.slice(0,3).map(a=>'<em>'+esc(a.time)+' · '+esc(clientName(a.clientId))+'</em>').join('')+'</button>'}).join('');
  const action='<button class="button primary hero-button" data-action="new" type="button">'+icon('plus')+' Nueva cita</button>';
  const stats='<div class="stat-grid"><div class="stat"><span>Citas del día</span><strong>'+appointments.length+'</strong><small>En la agenda seleccionada</small></div><div class="stat"><span>Por teléfono</span><strong>'+count('telefono')+'</strong><small>Sin cuenta ni aplicación</small></div><div class="stat"><span>Desde WhatsApp</span><strong>'+count('whatsapp')+'</strong><small>Registradas a mano</small></div><div class="stat"><span>Clientes habituales</span><strong>'+db.clients.length+'</strong><small>Con atención cercana</small></div></div>';
- const controls='<div class="calendar-controls"><div class="date-nav"><button aria-label="Día anterior" type="button" data-action="prev">'+icon('left')+'</button><input id="agenda-day" type="date" aria-label="Seleccionar día" value="'+esc(day)+'"><button aria-label="Día siguiente" type="button" data-action="next">'+icon('right')+'</button><button type="button" class="today-button" data-action="today">Hoy</button></div><label class="compact-select">Profesional <select id="agenda-professional"><option value="todos">Todos</option>'+selectable(db.professionals,professionalFilter)+'</select></label></div>';
+ const controls='<div class="calendar-controls"><div class="view-switch" role="group" aria-label="Vista de agenda"><button type="button" data-action="view-day" class="'+(calendarMode==='dia'?'selected':'')+'" aria-pressed="'+(calendarMode==='dia')+'">Día</button><button type="button" data-action="view-week" class="'+(calendarMode==='semana'?'selected':'')+'" aria-pressed="'+(calendarMode==='semana')+'">Semana</button></div><div class="date-nav"><button aria-label="Día anterior" type="button" data-action="prev">'+icon('left')+'</button><input id="agenda-day" type="date" aria-label="Seleccionar día" value="'+esc(day)+'"><button aria-label="Día siguiente" type="button" data-action="next">'+icon('right')+'</button><button type="button" class="today-button" data-action="today">Hoy</button></div><label class="compact-select">Profesional <select id="agenda-professional"><option value="todos">Todos</option>'+selectable(db.professionals,professionalFilter)+'</select></label></div>';
  const rows=appointments.map(a=>{
   const client=db.clients.find(c=>c.id===a.clientId);
   const service=db.services.find(s=>s.id===a.serviceId);
@@ -77,7 +81,7 @@ function agendaView():string{
  const slotButtons=slots.map(t=>'<button class="slot" type="button" data-action="slot" data-time="'+esc(t)+'">'+esc(t)+'</button>').join('');
  return pageHeading('TODO EN UN MISMO LUGAR','Cada cita, en su sitio.','Teléfono, WhatsApp, en persona y online. Tus reservas se organizan en una sola agenda.',action)+stats+
  '<div class="agenda-layout"><section class="panel"><div class="panel-head"><div><span class="kicker">TU DÍA</span><h2>'+esc(formatDay(day))+'</h2></div><span class="count-pill">'+appointments.length+' citas</span></div>'+controls+
- '<div class="appointment-list">'+(rows||'<div class="empty-state">'+icon('calendar')+'<h3>Este día está despejado</h3><p>Añade una cita por teléfono, WhatsApp o en persona en pocos pasos.</p><button class="button secondary" data-action="new">Crear una cita</button></div>')+'</div></section>'+
+ '+(calendarMode==='semana'?'<div class="week-overview">'+weekCards+'</div>':'')+'<div class="appointment-list">'+(rows||'<div class="empty-state">'+icon('calendar')+'<h3>Este día está despejado</h3><p>Añade una cita por teléfono, WhatsApp o en persona en pocos pasos.</p><button class="button secondary" data-action="new">Crear una cita</button></div>')+'</div></section>'+
  '<aside class="aside-stack"><section class="panel quick-panel"><span class="kicker">EN POCOS TOQUES</span><h2>Reserva un hueco</h2><p>Selecciona una hora libre para '+esc(professionalName(firstProfessional))+'. Podrás completar el cliente y el servicio después.</p><div class="slot-grid">'+(slotButtons||'<p class="muted">No hay huecos disponibles con el servicio de referencia.</p>')+'</div><small>Huecos orientativos para '+esc(serviceName(defaultService))+'. La disponibilidad se vuelve a comprobar al guardar.</small></section>'+
  '<section class="panel help-panel"><span class="kicker">PARA TODOS TUS CLIENTES</span><h2>Ellos reservan como siempre.</h2><p>Tú solo necesitas apuntarlo una vez.</p><div class="channel-guide"><span>'+icon('phone')+' Por teléfono</span><span>◉ WhatsApp</span><span>⌂ En el local</span><span>↗ Online (demo)</span></div></section></aside></div>';
 }
@@ -103,7 +107,7 @@ function onlineView():string{
  if(!times.includes(onlineTime))onlineTime='';
  const slots=times.map(t=>'<button type="button" class="online-slot '+(onlineTime===t?'selected':'')+'" data-action="online-time" data-time="'+t+'" aria-pressed="'+(onlineTime===t?'true':'false')+'">'+t+'</button>').join('');
  return pageHeading('VISTA DEL CLIENTE','Reservar también puede ser fácil','Una experiencia sin descargas ni contraseñas. Esta pantalla simula cómo reservaría un cliente.','<span class="preview-tag">VISTA DE DEMOSTRACIÓN</span>')+
- '<div class="online-layout"><section class="panel online-intro"><span class="kicker">BARBERÍA DEL BARRIO</span><div class="online-icon">'+icon('calendar')+'</div><h2>Tu próxima visita,<br>sin complicaciones.</h2><p>Escoge el servicio, el profesional y un hueco libre. No necesitas crear una cuenta.</p><div class="online-benefits"><span>'+icon('check')+' Sin descargar una aplicación</span><span>'+icon('check')+' Sin registrarte</span><span>'+icon('check')+' Disponibilidad en esta demo</span></div><div class="online-caution">En la versión real, las reservas online necesitarán un servidor compartido para confirmar los huecos de forma segura.</div></section>'+
+ '<div class="online-layout"><section class="panel online-intro"><span class="kicker">'+esc(db.settings.name.toLocaleUpperCase('es-ES'))+'</span><div class="online-icon">'+icon('calendar')+'</div><h2>Tu próxima visita,<br>sin complicaciones.</h2><p>Escoge el servicio, el profesional y un hueco libre. No necesitas crear una cuenta.</p><div class="online-benefits"><span>'+icon('check')+' Sin descargar una aplicación</span><span>'+icon('check')+' Sin registrarte</span><span>'+icon('check')+' Disponibilidad en esta demo</span></div><div class="online-caution">En la versión real, las reservas online necesitarán un servidor compartido para confirmar los huecos de forma segura.</div></section>'+
  '<section class="panel online-form-panel"><form id="online-form" novalidate><span class="kicker">SOLICITAR CITA · DEMOSTRACIÓN</span><h2>Elige cuándo venir</h2><div class="form-grid"><label class="field">Servicio<select id="online-service" name="service" required>'+selectable(db.services,onlineService)+'</select></label><label class="field">Profesional<select id="online-professional" name="professional" required>'+selectable(db.professionals,onlineProfessional)+'</select></label><label class="field full">Día<input type="date" id="online-day" name="day" min="'+dayOffset()+'" value="'+esc(onlineDay)+'" required></label></div><div class="field"><span>Horas libres</span><div class="online-slots">'+(slots||'<p class="muted">No quedan huecos para ese día. Prueba otro.</p>')+'</div></div><label class="field">Tu nombre<input name="name" type="text" maxlength="80" autocomplete="name" placeholder="Nombre y apellido" value="'+esc(onlineName)+'" required></label><p class="form-help">No pedimos correo electrónico ni una cuenta de usuario. Usa solo datos inventados en esta prueba.</p><p class="dialog-error" id="online-error" role="alert"></p><button class="button primary submit-wide" type="submit">'+icon('check')+' Confirmar cita de prueba</button></form></section></div>';
 }
 function dialogView():string{
@@ -139,6 +143,9 @@ function onClick(event:MouseEvent){
  const action=button.dataset.action,id=button.dataset.id??'';
  if(action==='close-backdrop'&&target!==button)return;
  if(action==='close'||action==='close-backdrop'){dialog=null;render();return}
+ if(action==='view-day'||action==='view-week'){calendarMode=action==='view-week'?'semana':'dia';render();return}
+ if(action==='select-day'){day=button.dataset.day??day;calendarMode='dia';render();return}
+ if(action==='closure-remove'){db.settings.closures=db.settings.closures.filter(c=>c.id!==id);save();announcement('Bloqueo eliminado.');return}
  if(action==='new'){dialog={kind:'cita'};flash='';render();return}
  if(action==='slot'){dialog={kind:'cita',prefill:{day,time:button.dataset.time??'11:00',professionalId:professionalFilter==='todos'?db.professionals[0]?.id:professionalFilter}};render();return}
  if(action==='prev'||action==='next'||action==='today'){day=action==='today'?dayOffset():shiftDay(day,action==='prev'?-1:1);flash='';render();return}
@@ -152,11 +159,11 @@ function onClick(event:MouseEvent){
  if(action==='client-new'||action==='client-edit'){dialog={kind:'cliente',id:action==='client-edit'?id:undefined};render();return}
  if(action==='service-new'||action==='service-edit'){dialog={kind:'servicio',id:action==='service-edit'?id:undefined};render();return}
  if(action==='online-time'){onlineTime=button.dataset.time??'';render();return}
- if(action==='reset'){if(window.confirm('¿Restablecer los datos ficticios de esta demostración?')){db=resetDemo();day=dayOffset();onlineName='';onlineTime='';professionalFilter='todos';announcement('Datos de ejemplo restaurados.')}return}
+ if(action==='reset'){if(window.confirm('¿Restablecer los datos ficticios de esta demostración?')){db=resetDemo();day=dayOffset();onlineName='';onlineTime='';professionalFilter='todos';calendarMode='dia';announcement('Datos de ejemplo restaurados.')}return}
 }
 async function copyConfirmation(id:string){
  const a=db.appointments.find(b=>b.id===id&&b.status==='confirmada');if(!a)return;
- const content='Hola, '+clientName(a.clientId)+'. Te confirmamos tu cita en Barbería del Barrio el '+formatDay(a.day,{weekday:'long',day:'numeric',month:'long'})+' a las '+a.time+' para '+serviceName(a.serviceId).toLowerCase()+'. ¡Hasta pronto!';
+ const content='Hola, '+clientName(a.clientId)+'. Te confirmamos tu cita en '+db.settings.name+' el '+formatDay(a.day,{weekday:'long',day:'numeric',month:'long'})+' a las '+a.time+' para '+serviceName(a.serviceId).toLowerCase()+'. ¡Hasta pronto!';
  try{await navigator.clipboard.writeText(content);announcement('Confirmación copiada. Pégala en tu conversación de WhatsApp.')}
  catch{window.prompt('Copia este mensaje y envíalo desde WhatsApp:',content)}
 }
@@ -181,9 +188,31 @@ function onInput(event:Event){
 }
 function onSubmit(event:SubmitEvent){
  const form=event.target as HTMLFormElement;if(!form?.id)return;
- if(!['booking-form','client-form','service-form','online-form'].includes(form.id))return;
+ if(!['booking-form','client-form','service-form','online-form','business-form','hours-form','closure-form'].includes(form.id))return;
  event.preventDefault();
  const name=dataFrom(form,'name');
+ if(form.id==='business-form'){
+  if(name.length<2)return inlineError(form,'Escribe un nombre válido.');
+  db.settings.name=name;save();announcement('Nombre del negocio actualizado.');return;
+ }
+ if(form.id==='hours-form'){
+  const next=structuredClone(db);
+  for(let d=0;d<7;d++){
+   const blocks:{open:string;close:string}[]=[];
+   for(let t=1;t<=2;t++){
+    const open=dataFrom(form,'open'+t+'_'+d),close=dataFrom(form,'close'+t+'_'+d);
+    if((open&&!close)||(close&&!open))return inlineError(form,'Completa apertura y cierre del '+WEEKDAYS[d]+'.');
+    if(open&&close)blocks.push({open,close});
+   }
+   const result=setHours(next,d,blocks);if(!result.ok)return inlineError(form,WEEKDAYS[d]+': '+result.message);
+  }
+  db.settings.hours=next.settings.hours;save();announcement('Horarios semanales actualizados.');return;
+ }
+ if(form.id==='closure-form'){
+  const result=addClosure(db,dataFrom(form,'day'),dataFrom(form,'reason'),dataFrom(form,'professionalId')||null);
+  if(!result.ok)return inlineError(form,result.message);
+  save();announcement(result.message);return;
+ }
  if(form.id==='booking-form'){
   const previousId=form.dataset.id||undefined;
   let clientId=dataFrom(form,'clientId');
