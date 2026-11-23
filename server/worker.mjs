@@ -47,7 +47,6 @@ if(direct){
   }finally{running=false}
  }
  const timer=setInterval(()=>{void tick()},60000);
- timer.unref();
  await tick();
  const stop=async()=>{clearInterval(timer);close();await database().end();process.exit(0)};
  process.once('SIGTERM',()=>{void stop()});
