@@ -1,6 +1,7 @@
 import pg from 'pg';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path';
 import {assert} from './domain.mjs';
 const {Pool}=pg;
 let pool;
@@ -19,7 +20,7 @@ export async function migrate(){
  const sql=await readFile(fileURLToPath(new URL('./schema.sql',import.meta.url)),'utf8');
  await database().query(sql);
 }
-if(process.argv[1]&&fileURLToPath(import.meta.url)===fileURLToPath(new URL('file://'+process.argv[1]))){
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
  await migrate();console.log('Esquema PostgreSQL instalado');
  await database().end();
 }
