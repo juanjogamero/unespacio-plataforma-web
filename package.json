@@ -1,0 +1,23 @@
+{
+  "name": "unespacio-plataforma-web",
+  "version": "0.8.1",
+  "private": true,
+  "type": "module",
+  "description": "Interfaz de desarrollo de Unespacio con datos ficticios",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "check": "npm run typecheck && npm test",
+    "dev:build": "node scripts/build.mjs --development",
+    "dev": "npm run dev:build && node scripts/serve.mjs",
+    "pages:build": "node scripts/build-pages.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}
