@@ -154,11 +154,15 @@ async function handleApi(req,res,url){
   owner(session);const b=await bodyJSON(req),professionalId=b.professionalId||null;
   assert(validDay(b.day),'Día incorrecto');if(professionalId)checkedUUID(professionalId);
   const reason=nonEmpty(b.reason,2,120)?b.reason.trim():'Cierre del negocio';
-  // No se permiten cierres retroactivos que dejen citas confirmadas olvidadas.
-  const blockers=await database().query("SELECT id FROM appointments WHERE business_id=$1 AND day=$2::date AND status='confirmada' AND ($3::uuid IS NULL OR professional_id=$3::uuid) LIMIT 1",[id,b.day,professionalId]);
-  assert(blockers.rowCount===0,'Ese día tiene citas confirmadas: muévelas o cancélalas antes de bloquearlo.',409);
-  const row=await database().query('INSERT INTO closures(business_id,professional_id,day,reason) VALUES($1,$2,$3::date,$4) RETURNING id',[id,professionalId,b.day,reason]);
-  return response(res,201,{id:row.rows[0].id});
+  // El mismo advisory lock que las nuevas reservas impide carreras entre cierre y alta.
+  const added=await transaction(async db=>{
+   await db.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',[id,b.day]);
+   const blockers=await db.query("SELECT id FROM appointments WHERE business_id=$1 AND day=$2::date AND status='confirmada' AND ($3::uuid IS NULL OR professional_id=$3::uuid) LIMIT 1",[id,b.day,professionalId]);
+   assert(blockers.rowCount===0,'Ese día tiene citas confirmadas: muévelas o cancélalas antes de bloquearlo.',409);
+   const row=await db.query('INSERT INTO closures(business_id,professional_id,day,reason) VALUES($1,$2,$3::date,$4) RETURNING id',[id,professionalId,b.day,reason]);
+   return row.rows[0].id;
+  });
+  return response(res,201,{id:added});
  }
  if(parts[2]==='closures'&&parts.length===4&&method==='DELETE'){
   owner(session);const closureId=checkedUUID(parts[3]);
