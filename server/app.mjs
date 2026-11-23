@@ -180,7 +180,7 @@ async function serveStatic(req,res,url){
  if(!['GET','HEAD'].includes(req.method||''))return response(res,405,{error:'Método no permitido'});
  let pathname;
  try{pathname=decodeURIComponent(url.pathname)}catch{return response(res,400,{error:'Ruta incorrecta'})}
- const target=pathname==='/'?join(ROOT,'index.html'):resolve(ROOT,'.'+pathname);
+ const target=(pathname==='/'||/^\/r\/[a-z0-9][a-z0-9-]{2,49}\/?$/.test(pathname))?join(ROOT,'index.html'):resolve(ROOT,'.'+pathname);
  if(!(target===ROOT||target.startsWith(ROOT+sep)))return response(res,403,{error:'Ruta prohibida'});
  try{
   const info=await stat(target);assert(info.isFile(),'No encontrado',404);
