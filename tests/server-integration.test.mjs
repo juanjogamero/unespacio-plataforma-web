@@ -100,9 +100,10 @@ test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes
   const waitJobs=(await db.query("SELECT * FROM notification_queue WHERE business_id=$1 AND kind='waitlist_open'",[b1])).rows;
   assert.equal(waitJobs.length,1);
   assert.equal(waitJobs[0].recipient_email,'cliente@example.invalid');
-  const futureCount=await scheduleReminders(new Date(),db);
+  const reminderNow=new Date(daysFrom(day,-2)+'T12:00:00.000Z');
+  const futureCount=await scheduleReminders(reminderNow,db);
   assert.ok(futureCount>=1);
-  const duplicateCount=await scheduleReminders(new Date(),db);
+  const duplicateCount=await scheduleReminders(reminderNow,db);
   assert.equal(duplicateCount,0);
   assert.ok(await scheduleDigests(new Date(),db)>=1);
   // Forzar vencimiento únicamente en la base efímera de CI.
