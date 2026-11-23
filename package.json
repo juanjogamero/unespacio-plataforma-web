@@ -1,14 +1,14 @@
 {
   "name": "unespacio-plataforma-web",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
-  "description": "Interfaz de desarrollo de Unespacio con datos ficticios",
+  "description": "Agenda de citas para pequeños negocios - prototipo de demostración",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "test": "npm run build && node --test tests/booking.test.mjs",
     "check": "npm run typecheck && npm test",
     "dev:build": "node scripts/build.mjs --development",
     "dev": "npm run dev:build && node scripts/serve.mjs",

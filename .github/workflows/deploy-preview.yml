@@ -1,4 +1,4 @@
-name: Desplegar frontend de desarrollo
+name: Desplegar Unespacio Citas (demo)
 on:
   push:
     branches: [main]
@@ -26,9 +26,9 @@ jobs:
       - run: npm run pages:build
       - name: Verificar versión y recursos publicados
         run: |
-          grep -q 'name="unespacio-release" content="0.8.1"' dist/index.html
-          grep -q 'brand.css?v=0.8.1' dist/index.html
-          test -s dist/assets/css/brand.css
+          grep -q 'name="unespacio-release" content="0.9.0"' dist/index.html
+          grep -q 'booking.css?v=0.9.0' dist/index.html
+          test -s dist/assets/css/booking.css
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
@@ -41,7 +41,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unespacio-plataforma-web-sitio-real-0.8.1
+          name: unespacio-plataforma-web-sitio-real-0.9.0
           path: qa/screenshots/*.png
           if-no-files-found: warn
           retention-days: 14
