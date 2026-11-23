@@ -3,8 +3,9 @@ import {readFile,stat} from 'node:fs/promises';
 import {resolve,join,sep,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {database,transaction} from './db.mjs';
-import {assert,validSlug,validDay,validUUID,nonEmpty,validPhone,minute,hhmm,validateHours,weekday} from './domain.mjs';
+import {assert,validSlug,validDay,validUUID,nonEmpty,validPhone,validEmail,minute,hhmm,validateHours,weekday} from './domain.mjs';
 import {register,login,authenticate,requireCSRF,logout,cookieHeader,sessionCSRF} from './auth.mjs';
+import {getAutomations,putAutomations,listWaitlist,addWaitlist,closeWaitlist} from './automations.mjs';
 import {businessBySlug,publicInfo,freeSlots,businessData,agenda,saveManual,cancel,confirmRequest,requestPublic,dbConflict} from './booking.mjs';
 
 const PORT=Number(process.env.API_PORT||4174),HOST=process.env.API_HOST||'127.0.0.1';
@@ -95,6 +96,19 @@ async function handleApi(req,res,url){
  if(!['GET','HEAD'].includes(method))requireCSRF(req,session);
  const id=session.business_id;
  if(method==='GET'&&path==='/api/v1/data')return response(res,200,await businessData(id));
+ if(path==='/api/v1/automations'){
+  if(method==='GET'){
+   const prefs=await getAutomations(id);
+   const stats=await database().query("SELECT kind,status,count(*)::int AS count FROM notification_queue WHERE business_id=$1 AND created_at>now()-interval '30 days' GROUP BY kind,status",[id]);
+   return response(res,200,{preferences:prefs,history:stats.rows});
+  }
+  if(method==='PUT'){owner(session);return response(res,200,{preferences:await putAutomations(id,await bodyJSON(req))})}
+ }
+ if(path==='/api/v1/waitlist'){
+  if(method==='GET')return response(res,200,{entries:await listWaitlist(id)});
+  if(method==='POST')return response(res,201,await addWaitlist(id,await bodyJSON(req)));
+ }
+ if(parts[2]==='waitlist'&&parts[3]&&parts.length===4&&method==='DELETE')return response(res,200,await closeWaitlist(id,parts[3]));
  if(method==='GET'&&path==='/api/v1/agenda')return response(res,200,{appointments:await agenda(id,url.searchParams.get('day'))});
  if(method==='POST'&&path==='/api/v1/appointments')return response(res,201,await saveManual(id,await bodyJSON(req)));
  if(parts[2]==='appointments'&&parts[3]&&parts.length===4){
@@ -107,11 +121,13 @@ async function handleApi(req,res,url){
   if(parts[4]==='confirm')return response(res,200,await confirmRequest(id,appointmentId));
  }
  if(parts[2]==='clients'&&parts.length===3){
-  if(method==='GET')return response(res,200,{clients:(await database().query('SELECT id,name,phone,preference FROM customers WHERE business_id=$1 ORDER BY name LIMIT 1000',[id])).rows});
+  if(method==='GET')return response(res,200,{clients:(await database().query('SELECT id,name,phone,preference,email,reminder_consent FROM customers WHERE business_id=$1 ORDER BY name LIMIT 1000',[id])).rows});
   if(method==='POST'){
    const b=await bodyJSON(req),name=trim(b.name),phone=b.phone?String(b.phone).trim():null,preference=b.preference||'telefono';
+   const email=b.email?String(b.email).trim():null,consent=b.reminderConsent===true;
    assert(!phone||validPhone(phone),'Teléfono incorrecto');assert(['telefono','whatsapp','local','online'].includes(preference),'Preferencia incorrecta');
-   const row=await database().query('INSERT INTO customers(business_id,name,phone,preference) VALUES($1,$2,$3,$4) RETURNING id',[id,name,phone,preference]);
+   assert(!email||validEmail(email),'Email incorrecto');assert(!consent||email,'Se necesita email para activar recordatorios');
+   const row=await database().query('INSERT INTO customers(business_id,name,phone,preference,email,reminder_consent) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',[id,name,phone,preference,email,consent]);
    return response(res,201,{id:row.rows[0].id});
   }
  }
@@ -124,8 +140,10 @@ async function handleApi(req,res,url){
  }
  if(parts[2]==='clients'&&parts[3]&&parts.length===4&&method==='PATCH'){
   const cid=checkedUUID(parts[3]),b=await bodyJSON(req),name=trim(b.name),phone=b.phone?String(b.phone).trim():null,preference=b.preference||'telefono';
+  const email=b.email?String(b.email).trim():null,consent=b.reminderConsent===true;
   assert(!phone||validPhone(phone),'Teléfono incorrecto');assert(['telefono','whatsapp','local','online'].includes(preference),'Preferencia incorrecta');
-  const row=await database().query('UPDATE customers SET name=$3,phone=$4,preference=$5 WHERE business_id=$1 AND id=$2 RETURNING id',[id,cid,name,phone,preference]);
+  assert(!email||validEmail(email),'Email incorrecto');assert(!consent||email,'Se necesita email para activar recordatorios');
+  const row=await database().query('UPDATE customers SET name=$3,phone=$4,preference=$5,email=$6,reminder_consent=$7 WHERE business_id=$1 AND id=$2 RETURNING id',[id,cid,name,phone,preference,email,consent]);
   assert(row.rowCount,'Cliente no encontrado',404);return response(res,200,{id:cid});
  }
  if(parts[2]==='services'&&parts.length===3){
