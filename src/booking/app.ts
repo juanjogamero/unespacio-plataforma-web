@@ -1,6 +1,6 @@
-import {CHANNEL_LABEL,availableTimes,cancelAppointment,createClient,createService,dayOffset,formatDay,latestForClient,loadDemo,persistDemo,resetDemo,saveAppointment,seedData,shiftDay,sortedAppointments,timeMinutes,minutesTime,setHours,addClosure,weekday,WEEKDAYS,type BookingInput,type Channel,type DemoData,type Preference} from './model.js';
+import {CHANNEL_LABEL,availableTimes,cancelAppointment,createClient,createService,dayOffset,formatDay,latestForClient,loadDemo,persistDemo,resetDemo,saveAppointment,seedData,shiftDay,sortedAppointments,timeMinutes,minutesTime,setHours,addClosure,weekday,WEEKDAYS,addWaitEntry,availableWaitMatches,nextDayReminders,tomorrowSummary,type BookingInput,type Channel,type DemoData,type Preference} from './model.js';
 
-type Page='agenda'|'clientes'|'servicios'|'reservar'|'horarios';
+type Page='agenda'|'clientes'|'servicios'|'reservar'|'horarios'|'automatizaciones';
 type Dialog={kind:'cita';id?:string;prefill?:Partial<BookingInput>}|{kind:'cliente';id?:string}|{kind:'servicio';id?:string}|null;
 const app=document.getElementById('app');
 let db:DemoData=loadDemo();
@@ -47,12 +47,12 @@ const sortedToday=()=>sortedAppointments(db,day).filter(a=>professionalFilter===
 const count=(source:Channel)=>sortedAppointments(db,day).filter(a=>a.channel===source).length;
 function announcement(message:string){flash=message;render()}
 function setPage(next:Page){page=next;dialog=null;window.location.hash='/'+next;render()}
-function routePage():Page{const hash=location.hash.replace(/^#\/?/,'');return ['agenda','clientes','servicios','reservar','horarios'].includes(hash)?hash as Page:'agenda'}
+function routePage():Page{const hash=location.hash.replace(/^#\/?/,'');return ['agenda','clientes','servicios','reservar','horarios','automatizaciones'].includes(hash)?hash as Page:'agenda'}
 function shell():string{
- const routes:{id:Page;title:string;icon:string}[]=[{id:'agenda',title:'Agenda',icon:'calendar'},{id:'clientes',title:'Clientes',icon:'users'},{id:'servicios',title:'Servicios',icon:'scissors'},{id:'reservar',title:'Reserva online',icon:'link'},{id:'horarios',title:'Horarios',icon:'clock'}];
+ const routes:{id:Page;title:string;icon:string}[]=[{id:'agenda',title:'Agenda',icon:'calendar'},{id:'clientes',title:'Clientes',icon:'users'},{id:'servicios',title:'Servicios',icon:'scissors'},{id:'reservar',title:'Reserva online',icon:'link'},{id:'horarios',title:'Horarios',icon:'clock'},{id:'automatizaciones',title:'Automatizaciones',icon:'spark'}];
  const nav=routes.map(r=>'<button type="button" class="nav-link '+(page===r.id?'active':'')+'" data-page="'+r.id+'" '+(page===r.id?'aria-current="page"':'')+'>'+icon(r.icon)+'<span>'+r.title+'</span></button>').join('');
- const titles:Record<Page,string>={agenda:'Agenda de citas',clientes:'Clientes habituales',servicios:'Servicios',reservar:'Reserva online',horarios:'Horarios y cierres'};
- const content=page==='agenda'?agendaView():page==='clientes'?clientsView():page==='servicios'?servicesView():page==='horarios'?hoursView():onlineView();
+ const titles:Record<Page,string>={agenda:'Agenda de citas',clientes:'Clientes habituales',servicios:'Servicios',reservar:'Reserva online',horarios:'Horarios y cierres',automatizaciones:'Automatizaciones'};
+ const content=page==='agenda'?agendaView():page==='clientes'?clientsView():page==='servicios'?servicesView():page==='horarios'?hoursView():page==='automatizaciones'?automationsView():onlineView();
  return '<div class="app-shell"><aside class="sidebar"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>unespacio<small>GESTIÓN DE CITAS</small></span></div><div class="place-card"><span class="place-dot"></span><div><strong>'+esc(db.settings.name)+'</strong><small>Negocio de demostración</small></div></div><p class="nav-label">TU ESPACIO</p><nav aria-label="Navegación principal">'+nav+'</nav><div class="sidebar-bottom"><div class="quiet-mark">'+icon('check')+' Sin complicaciones</div><small>Unespacio · versión de prueba</small></div></aside>'+
  '<div class="workspace"><div class="mobile-brand"><span class="brand-mark"></span><strong>unespacio</strong><span class="demo-tag">DEMO</span></div><header class="topbar"><div class="breadcrumb">MI NEGOCIO <span>/</span> <strong>'+titles[page]+'</strong></div><div class="top-actions"><span class="date-label">'+esc(formatDay(day,{day:'numeric',month:'short',year:'numeric'}))+'</span><span class="avatar" aria-label="Negocio de demostración">BB</span></div></header>'+
  '<div class="demo-note" role="note">'+icon('spark')+' <span><strong>Entorno de demostración.</strong> Los nombres son ficticios y los cambios se guardan solo en este navegador. No introduzcas datos reales.</span><button type="button" data-action="reset" title="Restablecer datos de ejemplo">'+icon('rotate')+'<span>Reiniciar demo</span></button></div>'+
@@ -117,6 +117,30 @@ function hoursView():string{
  '<section class="panel settings-panel"><span class="kicker">VACACIONES Y AUSENCIAS</span><h2>Bloquear una fecha</h2><p class="muted">Evita que entren nuevas citas mientras estés cerrado o un profesional esté ausente. Las citas ya existentes no se cancelan automáticamente.</p><form id="closure-form"><div class="form-grid"><label class="field">Día<input name="day" type="date" min="'+dayOffset()+'" value="'+dayOffset(1)+'"></label><label class="field">A quién afecta<select name="professionalId"><option value="">Todo el negocio</option>'+selectable(db.professionals,'')+'</select></label></div><label class="field">Motivo<input name="reason" maxlength="120" placeholder="Ej.: vacaciones, festivo"></label><p class="dialog-error" role="alert"></p><button class="button secondary" type="submit">'+icon('plus')+' Añadir bloqueo</button></form><div class="closure-list">'+(closures||'<p class="muted">No hay cierres especiales registrados.</p>')+'</div></section></div>';
 }
 
+function automationsView():string{
+ const reminders=nextDayReminders(db);
+ const waiting=db.waitlist.filter(w=>w.active);
+ const matches=availableWaitMatches(db);
+ const actions=[
+  {key:'reminders' as const,title:'Recordatorios de citas',description:'Prepara recordatorios para las citas de mañana sin redactarlos uno por uno.',icon:'clock',count:reminders.length+' para mañana'},
+  {key:'dailySummary' as const,title:'Resumen diario',description:'Toda la agenda de mañana preparada en un mensaje para el responsable.',icon:'calendar',count:sortedAppointments(db,shiftDay(dayOffset(),1)).length+' citas mañana'},
+  {key:'waitlist' as const,title:'Recuperar huecos cancelados',description:'Detecta qué clientes de la lista de espera podrían aprovechar un hueco libre.',icon:'users',count:matches.length+' oportunidades'}
+ ];
+ const cards=actions.map(a=>'<article class="automation-feature"><div class="automation-icon">'+icon(a.icon)+'</div><div class="automation-content"><h3>'+a.title+'</h3><p>'+a.description+'</p><span class="automation-count">'+a.count+'</span></div><button type="button" class="automation-switch '+(db.automation[a.key]?'on':'')+'" data-action="automation-toggle" data-key="'+a.key+'" aria-pressed="'+db.automation[a.key]+'">'+(db.automation[a.key]?'Activada':'Desactivada')+'</button></article>').join('');
+ const reminderCards=reminders.map(a=>'<article class="automation-task"><span class="task-marker">'+icon('clock')+'</span><div><strong>'+esc(clientName(a.clientId))+'</strong><small>'+a.time+' · '+esc(serviceName(a.serviceId))+' · '+esc(professionalName(a.professionalId))+'</small></div><button type="button" data-action="automation-copy" data-kind="reminder" data-id="'+esc(a.id)+'">'+icon('copy')+' Copiar mensaje</button></article>').join('');
+ const matchCards=matches.map(m=>'<article class="automation-task"><span class="task-marker">'+icon('check')+'</span><div><strong>'+esc(clientName(m.entry.clientId))+'</strong><small>'+esc(formatDay(m.entry.day))+' a las '+esc(m.time)+' · '+esc(serviceName(m.entry.serviceId))+'</small></div><button type="button" data-action="automation-copy" data-kind="wait" data-id="'+esc(m.entry.id)+'">'+icon('copy')+' Preparar aviso</button></article>').join('');
+ const waitingCards=waiting.map(w=>'<div class="waitlist-row"><div><strong>'+esc(clientName(w.clientId))+'</strong><small>'+esc(formatDay(w.day))+' · '+w.from+'–'+w.to+' · '+esc(serviceName(w.serviceId))+' · '+esc(professionalName(w.professionalId))+'</small></div><button type="button" data-action="wait-remove" data-id="'+esc(w.id)+'" aria-label="Retirar de la lista de espera">'+icon('x')+' Quitar</button></div>').join('');
+ const select=(items:{id:string;name:string}[])=>items.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.name)+'</option>').join('');
+ return pageHeading('QUE TU AGENDA TRABAJE POR TI','Automatizaciones útiles','Menos tiempo escribiendo mensajes y más huecos aprovechados, sin obligar a tus clientes a utilizar tecnología.',
+ '<span class="preview-tag">SIMULACIÓN INTERACTIVA</span>')+
+ '<div class="automation-warning">'+icon('spark')+' <span><strong>Esta demostración no envía correos ni WhatsApps.</strong> Genera propuestas y mensajes para copiar. El servidor privado podrá enviar correos de forma automática solo cuando se configure el servicio de correo y exista autorización del destinatario.</span></div>'+
+ '<div class="automation-features">'+cards+'</div>'+
+ '<div class="automation-grid"><section class="panel automation-panel"><div class="panel-head"><div><span class="kicker">SIGUIENTE DÍA</span><h2>Recordatorios preparados</h2></div><span class="count-pill">'+reminders.length+'</span></div><div class="automation-tasks">'+(reminderCards||'<p class="muted">No hay citas para recordar mañana.</p>')+'</div><div class="automation-foot"><button type="button" class="button secondary" data-action="automation-copy" data-kind="summary">'+icon('copy')+' Copiar resumen de mañana</button></div></section>'+
+ '<section class="panel automation-panel"><div class="panel-head"><div><span class="kicker">SIN PERDER UNA OPORTUNIDAD</span><h2>Huecos recuperables</h2></div><span class="count-pill">'+matches.length+'</span></div><div class="automation-tasks">'+(matchCards||'<p class="muted">Cuando canceles una cita y coincida con alguien en lista de espera, aparecerá aquí una propuesta de aviso.</p>')+'</div><p class="automation-foot muted">Un aviso no reserva automáticamente el hueco. La disponibilidad debe comprobarse de nuevo antes de confirmar.</p></section></div>'+
+ '<div class="automation-grid"><section class="panel automation-panel"><div class="panel-head"><div><span class="kicker">CLIENTES QUE QUIEREN VENIR</span><h2>Lista de espera</h2></div><span class="count-pill">'+waiting.length+'</span></div><div class="waitlist-list">'+(waitingCards||'<p class="muted">La lista de espera está vacía.</p>')+'</div></section>'+
+ '<section class="panel automation-panel"><div class="panel-head"><div><span class="kicker">AÑADIR CLIENTE</span><h2>Apuntar a la lista</h2></div></div><form id="waitlist-form" class="automation-wait-form"><div class="form-grid"><label class="field full">Cliente habitual<select name="clientId" required>'+select(db.clients)+'</select></label><label class="field">Servicio<select name="serviceId" required>'+select(db.services)+'</select></label><label class="field">Profesional<select name="professionalId" required>'+select(db.professionals)+'</select></label><label class="field full">Día<input name="day" type="date" value="'+day+'" required></label><label class="field">Desde<input name="from" type="time" value="09:00" required></label><label class="field">Hasta<input name="to" type="time" value="14:00" required></label></div><p class="dialog-error" role="alert"></p><button type="submit" class="button primary">Añadir a espera</button></form></section></div>';
+}
+
 function onlineView():string{
  if(!db.services.some(s=>s.id===onlineService))onlineService=db.services[0]?.id??'';
  if(!db.professionals.some(p=>p.id===onlineProfessional))onlineProfessional=db.professionals[0]?.id??'';
@@ -160,6 +184,14 @@ function onClick(event:MouseEvent){
  const action=button.dataset.action,id=button.dataset.id??'';
  if(action==='close-backdrop'&&target!==button)return;
  if(action==='close'||action==='close-backdrop'){dialog=null;render();return}
+ if(action==='automation-toggle'){const key=button.dataset.key as 'reminders'|'dailySummary'|'waitlist';if(['reminders','dailySummary','waitlist'].includes(key)){db.automation[key]=!db.automation[key];save();announcement('Preferencia de simulación actualizada.')}return}
+ if(action==='wait-remove'){const entry=db.waitlist.find(w=>w.id===id);if(entry){entry.active=false;save();announcement('Cliente retirado de la lista de espera.')}return}
+ if(action==='automation-copy'){const kind=button.dataset.kind??'';let content='';
+  if(kind==='summary')content=tomorrowSummary(db);
+  if(kind==='reminder'){const a=db.appointments.find(x=>x.id===id);if(a)content='Hola, '+clientName(a.clientId)+'. Te recordamos tu cita de '+serviceName(a.serviceId).toLowerCase()+' mañana '+formatDay(a.day)+' a las '+a.time+' en '+db.settings.name+'. ¡Hasta pronto!';}
+  if(kind==='wait'){const match=availableWaitMatches(db).find(m=>m.entry.id===id);if(match)content='Hola, '+clientName(match.entry.clientId)+'. Ha quedado un hueco en '+db.settings.name+' el '+formatDay(match.entry.day)+' a las '+match.time+'. Si te interesa, escríbenos y comprobamos la disponibilidad. Este mensaje NO confirma una cita.';}
+  if(content)void navigator.clipboard.writeText(content).then(()=>announcement('Mensaje preparado y copiado. No se ha enviado automáticamente.'),()=>window.prompt('Copia el mensaje para enviarlo manualmente:',content));return;
+ }
  if(action==='view-day'||action==='view-week'){calendarMode=action==='view-week'?'semana':'dia';render();return}
  if(action==='select-day'){day=button.dataset.day??day;calendarMode='dia';render();return}
  if(action==='closure-remove'){db.settings.closures=db.settings.closures.filter(c=>c.id!==id);save();announcement('Bloqueo eliminado.');return}
@@ -205,7 +237,7 @@ function onInput(event:Event){
 }
 function onSubmit(event:SubmitEvent){
  const form=event.target as HTMLFormElement;if(!form?.id)return;
- if(!['booking-form','client-form','service-form','online-form','business-form','hours-form','closure-form'].includes(form.id))return;
+ if(!['booking-form','client-form','service-form','online-form','business-form','hours-form','closure-form','waitlist-form'].includes(form.id))return;
  event.preventDefault();
  const name=dataFrom(form,'name');
  if(form.id==='business-form'){
@@ -224,6 +256,11 @@ function onSubmit(event:SubmitEvent){
    const result=setHours(next,d,blocks);if(!result.ok)return inlineError(form,WEEKDAYS[d]+': '+result.message);
   }
   db.settings.hours=next.settings.hours;save();announcement('Horarios semanales actualizados.');return;
+ }
+ if(form.id==='waitlist-form'){
+  const result=addWaitEntry(db,{clientId:dataFrom(form,'clientId'),serviceId:dataFrom(form,'serviceId'),professionalId:dataFrom(form,'professionalId'),day:dataFrom(form,'day'),from:dataFrom(form,'from'),to:dataFrom(form,'to')});
+  if(!result.ok)return inlineError(form,result.message);
+  save();announcement(result.message);return;
  }
  if(form.id==='closure-form'){
   const result=addClosure(db,dataFrom(form,'day'),dataFrom(form,'reason'),dataFrom(form,'professionalId')||null);
