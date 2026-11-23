@@ -1,0 +1,192 @@
+/* Unespacio Aula · Dirección de diseño 0.6 · Producto de trabajo, no mosaico de tarjetas.
+   Colores = contexto, estructuras diferentes para calendario, clases, tareas y contenidos. */
+:root{--studio-navy:#102d4a;--studio-ink:#173452;--studio-blue:#275ca6;--studio-cyan:#087d89;--studio-border:#dbe3ed;--studio-offwhite:#f6f8fb;--studio-sand:#f4f5f1;--studio-soft:#edf3fa}
+.content{max-width:1560px;padding-bottom:64px}
+.main-column{background:#f5f7fa}
+.topbar{background:#fff;box-shadow:0 1px #e6ecf4}
+.work-overline{display:block;color:#71839d;font:700 10px/1.45 'IBM Plex Mono',monospace;letter-spacing:.09em;text-transform:uppercase}
+.work-home,.work-classes-page,.work-calendar-page{padding-top:31px}
+.work-home-title,.work-page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:25px}
+.work-home-title h1,.work-page-head h1{font:750 clamp(30px,3vw,42px)/1.12 'Plus Jakarta Sans','DM Sans',sans-serif;letter-spacing:-.055em;color:#17314f;margin:7px 0 9px}
+.work-home-title h1 span{color:#e87579}
+.work-home-title p,.work-page-head p{margin:0;color:#6c7e94;font-size:13.5px}
+.work-home-today{display:flex;gap:9px;align-items:center;font-size:12px;color:#647d9a;text-transform:capitalize;margin-bottom:5px;white-space:nowrap}
+.work-home-layout{display:grid;grid-template-columns:minmax(0,1.63fr) minmax(326px,.9fr);gap:23px;align-items:start}
+.work-home-primary{min-width:0}.work-home-aside{min-width:0;display:grid;gap:18px}
+.work-lesson-feature{min-height:250px;padding:27px 29px 24px;background:#143b64;color:white;border-radius:16px;position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.work-lesson-feature:before{content:'';position:absolute;right:-122px;top:-139px;width:405px;height:405px;border:1px solid #b8d8fa38;border-radius:50%;z-index:-1;box-shadow:0 0 0 55px #6dafe60e,0 0 0 115px #6dafe608}
+.work-lesson-feature:after{content:'';position:absolute;bottom:0;right:0;width:220px;height:4px;background:#6dcecc}
+.work-lesson-eyebrow{font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#b9d9f1;display:flex;align-items:center;gap:9px}
+.work-lesson-main{display:flex;align-items:end;justify-content:space-between;gap:18px;padding:22px 0 21px}
+.work-lesson-context{color:#c1d9ed;font-size:12px}
+.work-lesson-feature h2{color:white;font-size:clamp(24px,2.5vw,37px);font-weight:750;margin:7px 0 8px;line-height:1.14;max-width:460px;letter-spacing:-.055em}
+.work-lesson-feature p{color:#c5d8e9;margin:0;font-size:12.5px}
+.work-lesson-clock{font:550 clamp(30px,3vw,52px) 'Plus Jakarta Sans',sans-serif;letter-spacing:-.06em;flex:none;color:#d5f9f0}
+.work-lesson-footer{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.work-lesson-secondary{display:flex;align-items:center;gap:5px;color:#d7e8fa;font-size:12px;font-weight:700}.work-lesson-secondary:hover{color:#fff}
+.work-main-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:1px solid #fff;background:#fff;color:#173c60;font-weight:750;font-size:12px;line-height:1.4;padding:12px 15px;border-radius:9px;min-height:44px;white-space:nowrap;cursor:pointer}
+.work-main-button:hover{background:#e6f2ff;border-color:#d4e6fc;color:#173c60}
+.work-lesson-geometry{pointer-events:none}
+.work-section-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:29px 0 14px}
+.work-section-title h2{font-size:21px;color:#213a56;line-height:1.25;margin:5px 0 0;font-weight:750}
+.work-section-title h2>span{font-size:12px;background:#e4ecf5;color:#496c94;padding:3px 8px;margin-left:5px;border-radius:6px;vertical-align:middle}
+.work-link{display:inline-flex;align-items:center;gap:5px;color:#245a96;font-size:12px;font-weight:750;white-space:nowrap}
+.work-link:hover{text-decoration:underline;text-underline-offset:4px;color:#163d6b}
+/* Cada aula tiene identidad, estructura de trabajo y acciones distinguibles. */
+.work-classes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.work-class{--work-accent:#315ea2;--work-accent-light:#e7effb;background:#fff;border:1px solid #dce5ee;border-radius:14px;overflow:hidden;min-width:0;transition:border-color .15s,box-shadow .15s}
+.work-class.blue{--work-accent:#23599b;--work-accent-light:#e7effa}
+.work-class.teal{--work-accent:#087782;--work-accent-light:#e1f2f0}
+.work-class.violet{--work-accent:#63549f;--work-accent-light:#f0eafa}
+.work-class.rose{--work-accent:#ad546a;--work-accent-light:#fcecef}
+.work-class:hover{border-color:#bacbdc;box-shadow:0 9px 25px #15375712}
+.work-class-top{min-height:170px;background:var(--work-accent);padding:16px 18px 21px;color:#fff;position:relative;isolation:isolate;overflow:hidden}
+.work-class-top:before{content:'';position:absolute;width:230px;height:230px;right:-110px;bottom:-160px;border:1px solid #ffffff40;border-radius:50%;box-shadow:0 0 0 27px #ffffff0d,0 0 0 60px #ffffff0a;z-index:-1}
+.work-class-index{display:flex;justify-content:space-between;align-items:center;color:#e5effb;font-size:10px;font-weight:750}
+.work-class-index>span:first-child{border:1px solid #ffffff4a;padding:5px 9px;border-radius:6px;background:#ffffff11}
+.work-class-identity{display:flex;align-items:center;gap:13px;margin-top:21px}
+.work-class-initial{width:54px;height:57px;display:grid;place-items:center;font:700 33px 'Plus Jakarta Sans',sans-serif;color:#fff;background:#ffffff19;border:1px solid #ffffff4b;border-radius:10px;flex:none}
+.work-class-identity>div{min-width:0}.work-class-meta{display:block;text-transform:uppercase;color:#d8e8f7;font-size:10px;font-weight:650;letter-spacing:.04em}
+.work-class h3{color:#fff;margin:4px 0 2px;font-size:clamp(19px,2vw,26px);font-weight:750;letter-spacing:-.045em;overflow-wrap:anywhere}
+.work-class-identity p{color:#ecf3fa;font-size:11px;margin:0;line-height:1.4}
+.work-class-bottom{padding:16px 17px 14px}
+.work-class-stats{display:flex;align-items:center;gap:15px;flex-wrap:wrap;color:#657b96;font-size:11px;font-weight:650;padding-bottom:15px}
+.work-class-stats span,.work-class-next{display:flex;align-items:center;gap:7px}.work-class-stats .ic{color:var(--work-accent)}
+.work-class-next{border-top:1px solid #edf1f5;padding:13px 0;color:#55728d;font-size:11.5px}.work-class-next .ic{color:var(--work-accent)}
+.work-class-actions{border-top:1px solid #edf1f5;display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:13px}
+.work-class-enter{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:750;color:var(--work-accent)}
+.work-class-session{display:inline-flex;gap:3px;align-items:center;font-size:11px;font-weight:650;color:#72859b;white-space:nowrap}
+.work-class-enter:hover,.work-class-session:hover{color:#143956;text-decoration:underline;text-underline-offset:3px}
+.work-classes-overview{grid-template-columns:repeat(auto-fit,minmax(min(100%,325px),1fr));gap:19px}
+.work-total-classes{background:#e9eff5;border:1px solid #d7e2ee;padding:11px 15px;color:#52718f;border-radius:8px;font-size:12px;white-space:nowrap;font-weight:650}
+/* Entregas: registro operativo, distinto de la identidad gráfica de clases */
+.work-activity-ledger{border-top:1px solid #d8e2ec;margin-top:25px}.work-activity-ledger .work-section-title{margin:22px 0 12px}
+.work-activity-row{background:#fff;min-height:70px;display:grid;grid-template-columns:40px minmax(0,1fr) 18px;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e0e7ef;border-bottom:0;color:#31506d}
+.work-activity-row:first-of-type{border-radius:9px 9px 0 0}.work-activity-row:last-child{border-bottom:1px solid #e0e7ef;border-radius:0 0 9px 9px}
+.work-activity-row:hover{background:#f1f5fa}.work-activity-avatar{display:grid;place-items:center;width:40px;height:40px;background:#e9f1fa;border-radius:8px;color:#275da0}.work-activity-row strong,.work-activity-row small{display:block}.work-activity-row strong{font-size:13px}.work-activity-row small{font-size:11px;color:#7c8ca2;margin-top:3px}
+.work-complete{padding:18px;background:#eef5f2;border:1px solid #d6eae0;border-radius:10px;display:flex;gap:13px;align-items:start}.work-complete>span{width:37px;height:37px;border-radius:50%;display:grid;place-items:center;background:#d4ebe2;color:#157052}.work-complete strong{font-size:13px;color:#1d5343}.work-complete p{color:#608070;font-size:11.5px;margin:3px 0 0}
+/* Calendario real y estados de selección. */
+.work-calendar{--cal-tint:#eaf2fb;background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:23px;min-width:0}
+.work-calendar-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid #ebeff4}
+.work-calendar-header h2{font-size:21px;color:#1b3654;margin:5px 0 0}.work-calendar-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:17px 0 14px}
+.work-calendar-nav>strong{font-size:13px;color:#2a4663;font-weight:750;text-transform:capitalize}
+.work-calendar-nav-actions{display:flex;align-items:center;gap:5px}
+.work-icon-soft{width:33px;height:33px;display:grid;place-items:center;border:1px solid #dfe7f0;background:#f8fafc;border-radius:8px;color:#496f96;flex:none;padding:0;cursor:pointer}
+.work-icon-soft:hover{background:#eaf2fd;color:#17467e;border-color:#a9c0dc}
+.work-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.work-calendar-weekday{text-align:center;font-size:11px;color:#8798ae;font-weight:700;padding-bottom:8px}
+.work-calendar-cell{border:0;background:transparent;color:#304b67;display:flex;align-items:center;flex-direction:column;justify-content:center;gap:4px;aspect-ratio:1/1;min-width:0;padding:2px;border-radius:9px;font-size:12px;font-weight:650;position:relative}
+.work-calendar-cell:hover{background:#eef4fb;color:#214f81}
+.work-calendar-cell.is-outside{color:#b0bdcc}
+.work-calendar-cell.is-today:not(.is-selected){box-shadow:inset 0 0 0 1px #7d9fc2;color:#1c558c}
+.work-calendar-cell.is-selected{background:#234e83;color:#fff;box-shadow:0 5px 12px #163f6d24}
+.work-calendar-dots{display:flex;align-items:center;justify-content:center;gap:3px;min-height:5px}
+.work-calendar-dots i,.work-calendar-legend i{display:block;width:5px;height:5px;border-radius:50%}
+.work-calendar-dots .lesson,.work-calendar-legend .lesson{background:#318ba4}.work-calendar-dots .deadline,.work-calendar-legend .deadline{background:#e97b83}
+.work-calendar-cell.is-selected .work-calendar-dots .lesson{background:#9cf6e4}.work-calendar-cell.is-selected .work-calendar-dots .deadline{background:#ffb7b8}
+.work-calendar-legend{display:flex;gap:16px;align-items:center;margin:11px 0 17px;color:#8292a5;font-size:10.5px}
+.work-calendar-legend span{display:flex;align-items:center;gap:5px}.work-calendar-legend i{width:7px;height:7px}
+.work-calendar-agenda{border-top:1px solid #e6ecf3;padding-top:15px}
+.work-calendar-daytop{display:flex;justify-content:space-between;align-items:center;gap:7px;margin-bottom:11px}
+.work-calendar-daytop small{font:700 9px 'IBM Plex Mono',monospace;color:#8b9bac;letter-spacing:.06em}
+.work-calendar-daytop h3{font-size:13px;margin:3px 0 0;text-transform:capitalize;line-height:1.45;font-weight:750;color:#1c3957}
+.work-calendar-total{white-space:nowrap;font-size:10px;color:#647f9b;background:#eff3f8;border-radius:6px;padding:5px 7px;font-weight:700}
+.work-calendar-events{display:grid;gap:7px}.work-calendar-event{display:grid;grid-template-columns:31px minmax(0,1fr) 14px;align-items:center;gap:9px;border:1px solid #e2e8ef;background:#f8fafc;padding:9px;border-radius:8px}
+.work-calendar-event:hover{border-color:#acc6dc;background:#eff6fd}.work-calendar-event-mark{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:#237e8b;background:#e2f3f3}.work-calendar-event.deadline .work-calendar-event-mark{background:#f9e9e9;color:#b45460}
+.work-calendar-event strong,.work-calendar-event small{display:block;overflow-wrap:anywhere}.work-calendar-event strong{font-size:11.5px;color:#2b4665}.work-calendar-event small{font-size:10.5px;color:#71869c;margin-top:3px}
+.work-calendar-empty{font-size:11.5px;color:#788ba1;line-height:1.55;padding:14px 0}
+.work-calendar-footer{border-top:1px solid #e6ecf3;margin-top:15px;padding-top:13px;display:flex;justify-content:space-between;align-items:center;color:#265e9c;font-size:11.5px;font-weight:750}.work-calendar-footer:hover{color:#16416e}
+.work-calendar-switch{background:#eff3f8;padding:3px;border-radius:9px;display:flex;gap:2px;margin-right:7px}
+.work-calendar-switch button{border:0;background:transparent;font-size:11px;color:#7085a0;padding:6px 10px;border-radius:7px;font-weight:650}.work-calendar-switch button.is-active{background:#fff;color:#194e82;box-shadow:0 1px 3px #162e4d13}
+.work-calendar-today{border:1px solid #d3e1ef;background:#edf4fc;color:#285985;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:750}
+.work-calendar-page-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(275px,.8fr);align-items:start;gap:22px}
+.work-calendar-full{padding:25px 28px}.work-calendar-full .work-calendar-grid{gap:6px}.work-calendar-full .work-calendar-cell{aspect-ratio:auto;min-height:65px;gap:6px;font-size:15px;border-radius:11px}
+.work-calendar-upcoming{background:#fff;border:1px solid #dce5ef;border-radius:14px;padding:24px 20px}
+.work-calendar-upcoming h2{font-size:22px;margin:5px 0 14px}
+.work-upcoming-item{display:grid;grid-template-columns:56px minmax(0,1fr) 16px;gap:8px;align-items:center;padding:13px 0;border-top:1px solid #e7edf3}
+.work-upcoming-item:hover{background:#f6f9fc}.work-upcoming-date{background:#edf3fa;border-radius:8px;color:#37618e;font-size:11px;text-transform:uppercase;display:grid;place-items:center;min-height:48px;padding:7px;font-weight:800;text-align:center}
+.work-upcoming-item strong,.work-upcoming-item small{display:block;overflow-wrap:anywhere}.work-upcoming-item strong{font-size:12px}.work-upcoming-item small{margin-top:3px;color:#7a8a9e;font-size:11px}
+.work-calendar-help{background:#f1f5f8;border-left:3px solid #5c97b7;display:flex;align-items:start;gap:9px;padding:12px 13px;margin-top:15px;border-radius:5px}
+.work-calendar-help p{font-size:11px;color:#66809b;margin:0}
+.work-side-help{display:grid;grid-template-columns:31px minmax(0,1fr);gap:10px;align-items:start;background:#eaf0f5;border-radius:12px;padding:17px 16px;color:#294f72}
+.work-side-help>span{width:31px;height:31px;background:#dbe8f4;display:grid;place-items:center;border-radius:8px}.work-side-help strong{font-size:12px}.work-side-help p{font-size:11.5px;color:#688099;margin:4px 0}.work-side-help>a{grid-column:2}
+/* Temas: índice de recorrido + superficie editorial de lectura y edición. */
+.work-content-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:17px;margin:27px 0 17px}
+.work-content-intro h2{font-size:25px;margin:5px 0 5px;letter-spacing:-.045em}.work-content-intro p{font-size:12.5px;color:#75879c;margin:0}.work-topic-new{color:#fff;background:#2b5b92;border-color:#2b5b92}.work-topic-new:hover{color:#fff;background:#184679;border-color:#184679}
+.work-topic-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;align-items:start}
+.work-topic-navigation{background:#fff;border:1px solid #dfe6ef;border-radius:13px;min-width:0;overflow:hidden}
+.work-topic-navtop{display:flex;align-items:center;justify-content:space-between;padding:19px 18px 13px;font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.07em;color:#788ba3}
+.work-topic-navtop strong{font:700 12px 'DM Sans',sans-serif;color:#386598}
+.work-topic-navigation nav{padding:0 10px 10px;position:relative}
+.work-topic-link{display:grid;grid-template-columns:31px minmax(0,1fr) 17px;gap:8px;align-items:center;min-height:65px;padding:11px 9px;border-radius:8px;border-left:3px solid transparent;color:#31516f}
+.work-topic-link:hover{background:#f1f5fa;color:#1e538e}
+.work-topic-link.active{background:#eaf1fa;color:#164d84;border-left-color:#2b67a3}
+.work-topic-step{font:700 11px 'IBM Plex Mono',monospace;color:#7e97af;border:1px solid #dce5f0;background:#fff;display:grid;place-items:center;width:30px;height:30px;border-radius:8px}
+.work-topic-link.active .work-topic-step{background:#315f9c;border-color:#315f9c;color:#fff}
+.work-topic-name{min-width:0}.work-topic-name strong,.work-topic-name small{display:block;overflow-wrap:anywhere}.work-topic-name strong{font-size:12px;line-height:1.3}.work-topic-name small{font-size:10px;color:#8697a9;margin-top:5px}
+.work-topic-navfoot{border-top:1px solid #e9eef4;display:flex;align-items:center;gap:9px;padding:14px 16px;font-size:10.5px;color:#8191a4}
+.work-topic-no-items{padding:15px;font-size:12px;color:#768aa1}
+.work-topic-workspace{background:#fff;border:1px solid #dfe6ef;border-radius:13px;min-width:0;overflow:hidden}
+.work-topic-banner{background:#eaf1f9;padding:24px 27px 0;border-bottom:1px solid #dae5f1;position:relative;overflow:hidden}
+.work-topic-banner:after{content:'';position:absolute;right:-85px;top:-115px;width:265px;height:265px;border:1px solid #b3c9e3;border-radius:50%;pointer-events:none}
+.work-topic-hero-row{display:flex;align-items:start;justify-content:space-between;gap:13px;margin:13px 0 17px;position:relative;z-index:1}
+.work-topic-hero-row h2{font-size:27px;color:#244768;margin:0 0 6px;letter-spacing:-.04em;overflow-wrap:anywhere}.work-topic-hero-row p{font-size:12.5px;color:#7288a2;margin:0}
+.work-topic-edit{display:flex;align-items:center;gap:7px;border:1px solid #c1d3e8;border-radius:8px;color:#2c6194;background:#fff;padding:9px 12px;font-size:11.5px;font-weight:750;white-space:nowrap}
+.work-topic-edit:hover{background:#f4f9ff}
+.work-topic-switch{display:flex;gap:6px;padding:10px 0;border-top:1px solid #d5e1ef;position:relative;z-index:1}
+.work-topic-switch a{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#34679a;font-weight:750;padding:5px 11px 5px 0}
+.work-topic-switch .is-disabled{opacity:.38;pointer-events:none}
+.work-topic-body{padding:6px 26px 25px;display:grid;gap:0}
+.work-topic-body>section{padding-top:24px}.work-topic-body>section+section{margin-top:24px;border-top:1px solid #e3eaf2}
+.work-topic-section-top{display:grid;grid-template-columns:43px minmax(0,1fr) auto;align-items:center;gap:12px;margin-bottom:14px}
+.work-topic-section-mark{width:43px;height:43px;border-radius:9px;display:grid;place-items:center;background:#e3eefb;color:#3669a5}
+.work-topic-section-mark.assignment{background:#efeafa;color:#7660af}
+.work-topic-section-top h3{margin:2px 0 2px;font-size:16px;color:#254466}.work-topic-section-top p{font-size:11.5px;color:#8494a7;margin:0}
+.work-topic-action{border:1px solid #d1deea;background:#fff;color:#2e5d90;display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:9px 11px;font-size:11.5px;font-weight:750;min-height:40px;white-space:nowrap}
+.work-topic-action:hover{border-color:#8ab0d4;background:#f2f7fc}
+.work-topic-list{border:1px solid #e2e9f1;border-radius:9px;overflow:hidden}
+.work-topic-list .item-row{padding:13px 14px;border:0;min-height:66px}.work-topic-list .item-row+.item-row{border-top:1px solid #e9eef4}.work-topic-list .item-row:hover{background:#f5f8fb}
+.work-topic-empty{display:flex;align-items:center;gap:13px;padding:21px;color:#8b9db1;font-size:12px;background:#f8fafc}
+.work-topic-first{text-align:center;padding:65px 22px;display:flex;flex-direction:column;align-items:center}.work-topic-first>span{color:#3b72ac}.work-topic-first h2{margin:13px 0 7px}.work-topic-first p{font-size:12px;color:#7a8da6}.work-topic-first button{margin-top:12px}
+/* Alumno: conservar cabecera, pero el calendario ocupa su propio espacio de trabajo. */
+.study-home{max-width:1460px}.study-main-grid{grid-template-columns:minmax(0,1.52fr) minmax(285px,.9fr);gap:24px}
+.study-side-column{border-left:0;padding:0;display:flex;flex-direction:column;gap:17px}
+.study-side-column .work-calendar{padding:19px 17px}.study-side-column .work-calendar-header h2{font-size:18px}
+.study-side-column .work-calendar-cell{font-size:11px;border-radius:7px}.study-side-column .work-calendar-daytop h3{font-size:12px}
+.study-side-column .study-util-block{border-top:1px solid #dde7f1;padding-top:20px}
+.study-side-column .study-util-block+.study-util-block{margin:0}
+.study-side-column .study-util-resource{border-bottom:1px solid #dfe7ef}
+.study-subject-item{box-shadow:none;border-radius:13px;transition:background .16s,border-color .16s}
+.study-subject-item:hover{transform:none;box-shadow:0 8px 25px #183b6d13}
+@media(max-width:1280px){.work-home-layout{grid-template-columns:minmax(0,1.43fr) minmax(290px,.83fr);gap:16px}.work-class-top{min-height:160px}.work-class-identity{gap:9px}.work-class-initial{width:47px;height:48px;font-size:25px}.work-class h3{font-size:20px}.work-topic-layout{grid-template-columns:210px minmax(0,1fr)}}
+@media(max-width:1040px){.work-home-layout{grid-template-columns:1fr}.work-home-aside{grid-template-columns:minmax(0,1fr) minmax(210px,.7fr);align-items:start}.work-calendar-compact{max-width:none}.work-calendar-cell{min-height:35px}.study-main-grid{grid-template-columns:1fr}.study-side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:18px;border-left:0;padding:0}.study-side-column .study-util-block{border:1px solid #dce6ee;background:#fff;border-radius:13px;padding:20px 17px}.work-calendar-page-grid{grid-template-columns:minmax(0,1fr) 280px}}
+@media(max-width:760px){.work-home-title,.work-page-head{align-items:start;flex-direction:column;gap:7px;margin-bottom:22px}.work-home-today{margin:0}.work-home-layout{grid-template-columns:1fr}.work-home-aside{grid-template-columns:1fr}.work-lesson-feature{min-height:230px}.work-calendar-page-grid{grid-template-columns:1fr}.work-calendar-full .work-calendar-cell{min-height:55px}.work-topic-layout{grid-template-columns:1fr}.work-topic-navigation nav{display:flex;gap:5px;overflow-x:auto;padding:6px 9px 12px}.work-topic-link{min-width:190px;max-width:235px;flex:none;min-height:64px}.work-topic-navfoot{display:none}.work-topic-navtop{padding:14px 15px 4px}.work-topic-workspace{margin-top:0}}
+@media(max-width:640px){.work-home,.work-classes-page,.work-calendar-page{padding-top:20px}.work-home-title h1{font-size:30px}.work-classes-grid{grid-template-columns:1fr}.work-lesson-feature{padding:22px 19px;border-radius:12px;min-height:230px}.work-lesson-clock{font-size:30px}.work-lesson-feature h2{font-size:25px}.work-class-top{min-height:154px}.work-calendar-full{padding:18px 13px}.work-calendar-nav{flex-wrap:wrap}.work-calendar-full .work-calendar-cell{min-height:44px}.work-calendar-switch{margin-right:2px}.work-content-intro{align-items:start;flex-direction:column}.work-topic-new{align-self:start}.work-topic-banner{padding:20px 17px 0}.work-topic-body{padding:4px 14px 18px}.work-topic-hero-row h2{font-size:21px}.work-topic-section-top{grid-template-columns:39px minmax(0,1fr);gap:9px}.work-topic-section-mark{width:39px;height:39px}.work-topic-section-top h3{font-size:14px}.work-topic-action{grid-column:2;justify-self:start}.study-side-column{grid-template-columns:1fr}.study-side-column .work-calendar{padding:19px 17px}.work-section-title h2{font-size:20px}}
+@media(max-width:375px){.work-class-actions{align-items:start;flex-direction:column}.work-calendar-full .work-calendar-cell{min-height:38px}.work-calendar-compact .work-calendar-cell{aspect-ratio:1/1}.work-calendar-nav-actions{gap:2px}.work-calendar-switch button{padding:6px 8px}}
+@media(prefers-reduced-motion:reduce){.work-class,.work-calendar-cell,.work-icon-soft{transition:none}}
+/* Profesor particular y administración: mismos principios, distinto recorrido. */
+.work-private-home,.work-admin-home{padding-top:31px}
+.work-private-add{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:9px;padding:12px 15px;min-height:44px;white-space:nowrap;background:#275a98;color:#fff;font-size:12px;font-weight:750;cursor:pointer}
+.work-private-add:hover{background:#1a477f}
+.work-private-highlight{background:#f0eee9;border-top:4px solid #b18d56;border-radius:11px;padding:23px 26px 20px;color:#283b50}
+.work-private-highlight .work-overline{color:#896e4a}
+.work-private-highlight-row{display:flex;justify-content:space-between;align-items:end;gap:15px;margin:22px 0}
+.work-private-highlight-row h2{font-size:clamp(21px,2.3vw,30px);margin:0 0 5px;color:#273f57}
+.work-private-highlight-row p{margin:0;font-size:12px;color:#776f64}
+.work-private-highlight-row>strong{font-size:clamp(28px,3vw,40px);color:#8f6842;letter-spacing:-.065em}
+.work-private-highlight-links{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.work-private-main-action{border:0;border-radius:8px;min-height:43px;background:#31557e;color:#fff;display:inline-flex;align-items:center;gap:9px;padding:11px 14px;font-size:12px;font-weight:750}
+.work-private-main-action:hover{background:#1d426a;color:#fff}
+.work-private-secondary{font-size:11.5px;font-weight:700;color:#46637c}
+.work-private-students{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.work-private-student{display:grid;grid-template-columns:44px minmax(0,1fr) 16px;gap:11px;align-items:center;background:#fff;border:1px solid #e0e7ee;border-radius:11px;padding:17px 13px;min-height:112px}
+.work-private-student:hover{border-color:#9eb7cf;background:#fafdff}
+.work-private-avatar{width:43px;height:43px;border-radius:11px;background:#e5edf8;color:#3c6999;display:grid;place-items:center;font-weight:800;font-size:12px;flex:none}
+.work-private-copy,.work-private-copy strong,.work-private-copy small{display:block;min-width:0;overflow-wrap:anywhere}
+.work-private-copy strong{font-size:13px;color:#243e5c}.work-private-copy small{font-size:11px;color:#8193aa;margin:3px 0 9px}
+.work-private-copy>span{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#527ca5}.work-private-student-arrow{color:#7292b3}
+.work-admin-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(305px,.8fr);align-items:start;gap:22px}
+.work-admin-people{border-top:1px solid #d9e3ed;margin-top:26px}.work-admin-person{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;border-bottom:1px solid #e2e9f1;padding:11px 4px}
+.work-admin-person strong,.work-admin-person small{display:block}.work-admin-person strong{font-size:12.5px;color:#274361}.work-admin-person small{font-size:11px;margin-top:3px;color:#8294a8}
+@media(max-width:1100px){.work-admin-grid{grid-template-columns:1fr}.work-admin-grid .work-home-aside{display:block;max-width:540px}}
+@media(max-width:720px){.work-private-home,.work-admin-home{padding-top:20px}.work-private-students{grid-template-columns:1fr}.work-private-highlight{padding:19px}.work-private-highlight-row{align-items:start}.work-admin-grid .work-home-aside{max-width:none}}

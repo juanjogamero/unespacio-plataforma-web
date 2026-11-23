@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+/* Identidad de Unespacio · iteración de desarrollo 0.1 */
+:root{font-family:'DM Sans',system-ui,sans-serif;--ink:#193B39;--muted:#617B75;--border:#D9E5DE;--blue:#21635B;--blue-dark:#163D3B;--violet:#7971A3;--teal:#328676;--pink:#B98576;--bg:#F5F8F5;--ua-ink:#193B39;--ua-accent:#21635B;--ua-slate:#617B75;--ua-stroke:#D9E5DE;--ua-background:#F5F8F5;--studio-navy:#163D3B;--studio-ink:#193B39;--studio-blue:#21635B;--studio-cyan:#328676;--studio-border:#D9E5DE;--studio-offwhite:#F5F8F5;--studio-soft:#EAF4EE}
+body,h1,h2,h3,.brand-name,.login-brand{font-family:'DM Sans',system-ui,sans-serif}
+h1,h2,h3,.work-home-title h1,.work-page-head h1,.study-home-header h1{font-family:Manrope,'DM Sans',sans-serif}
+body,.main-column,.shell{background:#F5F8F5;color:#193B39}
+.sidebar{background:#163D3B;border-color:#234E49;color:#F5F8F5}
+.brand,.brand-name{color:#FFFFFF}
+.brand-symbol i:nth-child(1){background:#91C4A5}.brand-symbol i:nth-child(2){background:#D5AE99}.brand-symbol i:nth-child(3){background:#5D9E8D}
+.sidebar-section-label{color:#A8CEC0}.nav-item{color:#D6E9DF}.nav-item .ic{color:#A8CEC0}.nav-item:hover{background:#245A52;color:#fff}.nav-item.is-active{background:#E7F2EA;color:#163D3B}.nav-item.is-active .ic{color:#21635B}.nav-item.is-active:before{background:#91C4A5}
+.main-column,.content{background:#F5F8F5}.topbar,.surface,.today-bar{background:#fff;border-color:#D9E5DE}
+.btn-solid,.login-submit{background:#21635B;border-color:#21635B;color:#fff}.btn-solid:hover,.login-submit:hover{background:#163D3B;border-color:#163D3B}
+.text-link,.eyebrow{color:#21635B}.pill-blue{background:#E7F2EA;color:#21635B}.search-holder{background:#F8FAF8;border-color:#D9E5DE}
+.work-lesson-feature{background:#163D3B;border-color:#163D3B}
+.login-aside{background:#163D3B}.login-brand{color:#fff}
