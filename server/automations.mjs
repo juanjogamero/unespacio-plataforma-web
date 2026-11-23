@@ -90,7 +90,7 @@ export async function scheduleDigests(now=new Date(),db=database()){
  for(const b of accounts){
   const local=DateTime.fromJSDate(now,{zone:b.timezone});
   if(!local.isValid)continue;
-  const due=local.startOf('day').plus({hours:b.summary_hour});
+  const due=local.startOf('day').set({hour:b.summary_hour,minute:0});
   const day=due.toISODate();
   if(await enqueue(db,{businessId:b.id,eventKey:'digest:'+day+':'+b.email,kind:'daily_summary',email:b.email,subject:'Agenda de mañana · '+b.name,body:'El resumen se genera con los datos actuales en el momento del envío.',dueAt:due.toJSDate()}))count++;
  }
@@ -99,6 +99,8 @@ export async function scheduleDigests(now=new Date(),db=database()){
 export async function queueWaitlistForCancellation(db,businessId,cancelled){
  const setting=await one(db,'SELECT waitlist_enabled FROM automation_settings WHERE business_id=$1',[businessId]);
  if(!setting?.waitlist_enabled)return 0;
+ const business=await one(db,'SELECT timezone FROM businesses WHERE id=$1',[businessId]);
+ if(cancelled.day<localDate(business?.timezone||'Europe/Madrid'))return 0;
  const list=await rows(db,"SELECT w.id,w.from_min,w.to_min,w.professional_id,w.day::text,c.name AS customer_name,c.email,s.minutes AS duration,b.name AS business_name FROM waitlist_entries w JOIN customers c ON c.business_id=w.business_id AND c.id=w.customer_id JOIN services s ON s.business_id=w.business_id AND s.id=w.service_id JOIN businesses b ON b.id=w.business_id WHERE w.business_id=$1 AND w.day=$2::date AND w.professional_id=$3 AND w.status='active' AND w.notify_consent=true ORDER BY w.created_at LIMIT 25",[businessId,cancelled.day,cancelled.professional_id]);
  const hours=await rows(db,'SELECT weekday,open_min,close_min FROM business_hours WHERE business_id=$1 AND weekday=$2',[businessId,weekday(cancelled.day)]);
  const closures=await rows(db,'SELECT day::text,professional_id FROM closures WHERE business_id=$1 AND day=$2::date',[businessId,cancelled.day]);
