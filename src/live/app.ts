@@ -1,13 +1,18 @@
 import {formatDay,dayOffset,shiftDay,CHANNEL_LABEL,type Channel} from '../booking/model.js';
 const root=document.getElementById('app');
-type Screen='agenda'|'clientes'|'servicios'|'horarios'|'publicar';
+type Screen='agenda'|'clientes'|'servicios'|'horarios'|'publicar'|'automatizaciones';
 interface UserSession {user:{email:string;role:'owner'|'staff'};business:{id:string;name:string;slug:string;timezone:string;publicBookingEnabled:boolean;privacyUrl:string|null};csrfToken:string}
 interface Service {id:string;name:string;minutes:number;price_cents:number;active:boolean}
 interface Person {id:string;name:string;active:boolean}
-interface Customer {id:string;name:string;phone:string|null;preference:Channel}
+interface Customer {id:string;name:string;phone:string|null;preference:Channel;email:string|null;reminder_consent:boolean}
 interface Slot {weekday:number;slot:number;open_min:number;close_min:number}
 interface BusinessData {services:Service[];professionals:Person[];customers:Customer[];hours:Slot[];closures:unknown[]}
 interface Booking {id:string;day:string;start_min:number;end_min:number;customer_name:string;service_name:string;professional_name:string;source:Channel;status:'pendiente'|'confirmada'|'cancelada'}
+interface AutomationPreferences {ownerAlertsEnabled:boolean;remindersEnabled:boolean;dailySummaryEnabled:boolean;waitlistEnabled:boolean;summaryHour:number}
+interface AutomationHistory {kind:string;status:string;count:number}
+interface WaitListItem {id:string;day:string;from_min:number;to_min:number;customer_name:string;service_name:string;professional_name:string;notify_consent:boolean}
+let automation:{preferences:AutomationPreferences;history:AutomationHistory[]}|null=null;
+let waitingList:WaitListItem[]=[];
 let session:UserSession|null=null;
 let data:BusinessData|null=null;
 let appointments:Booking[]=[];
@@ -42,6 +47,10 @@ async function loadData(){
  data=await request<BusinessData>('/data');
  const r=await request<{appointments:Booking[]}>('/agenda?day='+encodeURIComponent(day));
  appointments=r.appointments;
+ if(screen==='automatizaciones'){
+  automation=await request<{preferences:AutomationPreferences;history:AutomationHistory[]}>('/automations');
+  waitingList=(await request<{entries:WaitListItem[]}>('/waitlist')).entries;
+ }
 }
 function alertHTML(){return (error?'<p class="live-alert error" role="alert">'+escape(error)+'</p>':'')+(message?'<p class="live-alert success" role="status">'+escape(message)+'</p>':'')}
 function loginPage():string{
@@ -52,10 +61,10 @@ function loginPage():string{
 }
 function banner():string{return '<div class="live-notice">Espacio privado · '+escape(session?.business.name)+' <button type="button" data-action="logout">Cerrar sesión</button></div>'}
 function layout():string{
- const pages:{id:Screen;name:string}[]=[{id:'agenda',name:'Agenda'},{id:'clientes',name:'Clientes'},{id:'servicios',name:'Servicios y equipo'},{id:'horarios',name:'Horarios'},{id:'publicar',name:'Reserva pública'}];
+ const pages:{id:Screen;name:string}[]=[{id:'agenda',name:'Agenda'},{id:'clientes',name:'Clientes'},{id:'servicios',name:'Servicios y equipo'},{id:'horarios',name:'Horarios'},{id:'publicar',name:'Reserva pública'},{id:'automatizaciones',name:'Automatizaciones'}];
  const nav=pages.map(p=>'<button type="button" class="nav-link '+(screen===p.id?'active':'')+'" data-nav="'+p.id+'">'+escape(p.name)+'</button>').join('');
  return '<div class="app-shell live-shell"><aside class="sidebar"><div class="brand"><span class="brand-mark"></span><span>unespacio<small>GESTIÓN DE CITAS</small></span></div><div class="place-card"><strong>'+escape(session?.business.name)+'</strong></div><p class="nav-label">TU NEGOCIO</p><nav>'+nav+'</nav><div class="sidebar-bottom"><small>Unespacio · acceso privado</small></div></aside><div class="workspace">'+banner()+
- '<main class="main-content">'+alertHTML()+(screen==='agenda'?agendaPage():screen==='clientes'?clientsPage():screen==='servicios'?servicesPage():screen==='horarios'?hoursPage():publishPage())+'</main><nav class="live-mobile-nav">'+nav+'</nav></div></div>';
+ '<main class="main-content">'+alertHTML()+(screen==='agenda'?agendaPage():screen==='clientes'?clientsPage():screen==='servicios'?servicesPage():screen==='horarios'?hoursPage():screen==='publicar'?publishPage():automationsPage())+'</main><nav class="live-mobile-nav">'+nav+'</nav></div></div>';
 }
 function agendaPage():string{
  const rows=appointments.map(a=>'<div class="live-appointment"><div class="live-hour">'+time(a.start_min)+'</div><div><strong>'+escape(a.customer_name)+'</strong><p>'+escape(a.service_name)+' · '+escape(a.professional_name)+' · '+escape(CHANNEL_LABEL[a.source])+'</p></div><span class="status '+a.status+'">'+(a.status==='pendiente'?'Pendiente':a.status==='cancelada'?'Cancelada':'Confirmada')+'</span><div class="live-actions">'+(a.status==='pendiente'?'<button data-action="confirm" data-id="'+a.id+'">Confirmar</button>':'')+(a.status!=='cancelada'?'<button data-action="cancel" data-id="'+a.id+'">Cancelar</button>':'')+'</div></div>').join('');
@@ -65,8 +74,8 @@ function agendaPage():string{
  '<section class="panel settings-panel"><div class="live-day-header"><div><span class="kicker">EL DÍA</span><h2>'+escape(formatDay(day))+'</h2></div><input id="live-day" type="date" value="'+day+'"></div><div class="live-list">'+(rows||'<div class="empty-state"><h3>Sin citas todavía</h3><p>Las reservas del establecimiento aparecerán aquí.</p></div>')+'</div></section></div>';
 }
 function clientsPage():string{
- const cards=(data?.customers??[]).map(c=>'<div class="client-card"><div class="client-avatar">'+escape(c.name.slice(0,1))+'</div><div class="client-details"><strong>'+escape(c.name)+'</strong><small>'+escape(CHANNEL_LABEL[c.preference])+'</small>'+(c.phone?'<p>'+escape(c.phone)+'</p>':'')+'<button class="button secondary client-repeat" type="button" data-action="repeat-live" data-id="'+escape(c.id)+'">Repetir última cita</button></div></div>').join('');
- return '<section class="page-heading"><div><span class="kicker">TRATO PERSONAL</span><h1>Clientes habituales</h1><p>Guarda solo los datos necesarios, sin exigir una cuenta a tus clientes.</p></div></section><div class="live-two"><section class="panel settings-panel"><h2>Añadir cliente</h2><form id="live-client"><label class="field">Nombre<input name="name" maxlength="100" required></label><label class="field">Teléfono (opcional)<input name="phone" type="tel" maxlength="30"></label><label class="field">Canal preferido<select name="preference"><option value="telefono">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="local">En persona</option><option value="online">Online</option></select></label><button class="button primary" type="submit">Guardar cliente</button></form></section><section class="panel settings-panel"><h2>'+cards.length+' clientes</h2><div class="client-grid">'+(cards||'<p class="muted">Todavía no hay clientes.</p>')+'</div></section></div>';
+ const cards=(data?.customers??[]).map(c=>'<div class="client-card"><div class="client-avatar">'+escape(c.name.slice(0,1))+'</div><div class="client-details"><strong>'+escape(c.name)+'</strong><small>'+escape(CHANNEL_LABEL[c.preference])+'</small>'+(c.phone?'<p>'+escape(c.phone)+'</p>':'')+'<small>'+(c.reminder_consent?'Recordatorios autorizados':'Sin avisos por email')+'</small><button class="button secondary client-repeat" type="button" data-action="repeat-live" data-id="'+escape(c.id)+'">Repetir última cita</button></div></div>').join('');
+ return '<section class="page-heading"><div><span class="kicker">TRATO PERSONAL</span><h1>Clientes habituales</h1><p>Guarda solo los datos necesarios, sin exigir una cuenta a tus clientes.</p></div></section><div class="live-two"><section class="panel settings-panel"><h2>Añadir cliente</h2><form id="live-client"><label class="field">Nombre<input name="name" maxlength="100" required></label><label class="field">Teléfono (opcional)<input name="phone" type="tel" maxlength="30"></label><label class="field">Correo para recordatorios (opcional)<input name="email" type="email" maxlength="254" placeholder="cliente@ejemplo.es"></label><label class="field live-checkbox"><input name="reminderConsent" type="checkbox"> El cliente ha autorizado recordatorios de citas por email</label><label class="field">Canal preferido<select name="preference"><option value="telefono">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="local">En persona</option><option value="online">Online</option></select></label><button class="button primary" type="submit">Guardar cliente</button></form></section><section class="panel settings-panel"><h2>'+cards.length+' clientes</h2><div class="client-grid">'+(cards||'<p class="muted">Todavía no hay clientes.</p>')+'</div></section></div>';
 }
 function servicesPage():string{
  const list=(data?.services??[]).map(s=>'<div class="live-service"><strong>'+escape(s.name)+'</strong><span>'+s.minutes+' min · '+money(s.price_cents)+'</span></div>').join('');
@@ -89,7 +98,7 @@ function publishPage():string{
 function publicPage():string{
  if(!publicData)return '<div class="public-booking"><h1>Reserva online</h1>'+alertHTML()+'<p>No se ha podido cargar el establecimiento.</p></div>';
  const options=(items:{id:string;name:string}[],value:string)=>items.map(x=>'<option value="'+escape(x.id)+'"'+(x.id===value?' selected':'')+'>'+escape(x.name)+'</option>').join('');
- return '<div class="public-booking"><div class="public-header"><span class="brand-mark"></span><strong>unespacio</strong></div><div class="panel online-form-panel"><span class="kicker">RESERVA SIN REGISTRARTE</span><h1>'+escape(publicData.business.name)+'</h1><p>Elige un horario para solicitar tu cita. El establecimiento confirmará la reserva.</p>'+alertHTML()+'<form id="live-public-book"><div class="form-grid"><label class="field">Servicio<select id="public-service">'+options(publicData.services,publicParams.serviceId)+'</select></label><label class="field">Profesional<select id="public-professional">'+options(publicData.professionals,publicParams.professionalId)+'</select></label></div><label class="field">Día<input id="public-day" type="date" min="'+dayOffset()+'" max="'+shiftDay(dayOffset(),45)+'" value="'+publicParams.day+'"></label><span class="field">Horas disponibles</span><div class="online-slots">'+(publicSlots.length?publicSlots.map(t=>'<button class="online-slot '+(selectedSlot===t?'selected':'')+'" data-action="public-slot" data-time="'+t+'" type="button">'+t+'</button>').join(''):'<p class="muted">Sin huecos disponibles para esta fecha.</p>')+'</div><label class="field">Tu nombre<input name="name" maxlength="100" autocomplete="name" required></label><label class="field">Teléfono para gestionar la cita<input name="phone" type="tel" maxlength="30" autocomplete="tel" required></label><label class="field live-checkbox"><input type="checkbox" name="acceptedPrivacy" required> He leído la <a href="'+escape(publicData.business.privacyUrl)+'" target="_blank" rel="noopener noreferrer">política de privacidad</a> del negocio.</label><input type="text" name="website" class="honey-field" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="button primary submit-wide" type="submit">Enviar solicitud de cita</button></form><p class="muted">No necesitas cuenta ni contraseña. La cita no estará confirmada hasta que el negocio la acepte.</p></div></div>';
+ return '<div class="public-booking"><div class="public-header"><span class="brand-mark"></span><strong>unespacio</strong></div><div class="panel online-form-panel"><span class="kicker">RESERVA SIN REGISTRARTE</span><h1>'+escape(publicData.business.name)+'</h1><p>Elige un horario para solicitar tu cita. El establecimiento confirmará la reserva.</p>'+alertHTML()+'<form id="live-public-book"><div class="form-grid"><label class="field">Servicio<select id="public-service">'+options(publicData.services,publicParams.serviceId)+'</select></label><label class="field">Profesional<select id="public-professional">'+options(publicData.professionals,publicParams.professionalId)+'</select></label></div><label class="field">Día<input id="public-day" type="date" min="'+dayOffset()+'" max="'+shiftDay(dayOffset(),45)+'" value="'+publicParams.day+'"></label><span class="field">Horas disponibles</span><div class="online-slots">'+(publicSlots.length?publicSlots.map(t=>'<button class="online-slot '+(selectedSlot===t?'selected':'')+'" data-action="public-slot" data-time="'+t+'" type="button">'+t+'</button>').join(''):'<p class="muted">Sin huecos disponibles para esta fecha.</p>')+'</div><label class="field">Tu nombre<input name="name" maxlength="100" autocomplete="name" required></label><label class="field">Teléfono para gestionar la cita<input name="phone" type="tel" maxlength="30" autocomplete="tel" required></label><label class="field">Correo electrónico (opcional)<input name="email" type="email" maxlength="254" autocomplete="email" placeholder="Solo si quieres recordatorios"></label><label class="field live-checkbox"><input type="checkbox" name="reminderConsent"> Quiero recibir un recordatorio de mi cita por correo</label><label class="field live-checkbox"><input type="checkbox" name="acceptedPrivacy" required> He leído la <a href="'+escape(publicData.business.privacyUrl)+'" target="_blank" rel="noopener noreferrer">política de privacidad</a> del negocio.</label><input type="text" name="website" class="honey-field" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="button primary submit-wide" type="submit">Enviar solicitud de cita</button></form><p class="muted">No necesitas cuenta ni contraseña. La cita no estará confirmada hasta que el negocio la acepte.</p></div></div>';
 }
 function render(){
  if(!root)return;
@@ -123,7 +132,7 @@ async function submit(form:HTMLFormElement){
   await request('/appointments',{method:'POST',body:b});repeatDraft=null;day=b.day;message='Cita guardada correctamente.';await reload();return;
  }
  if(form.id==='live-client'){
-  await request('/clients',{method:'POST',body:{name:val(form,'name'),phone:val(form,'phone'),preference:val(form,'preference')}});
+  await request('/clients',{method:'POST',body:{name:val(form,'name'),phone:val(form,'phone'),email:val(form,'email'),reminderConsent:new FormData(form).get('reminderConsent')==='on',preference:val(form,'preference')}});
   message='Cliente guardado.';await reload();return;
  }
  if(form.id==='live-service'){
@@ -143,6 +152,16 @@ async function submit(form:HTMLFormElement){
   }
   await request('/hours',{method:'PUT',body:{hours:rows}});message='Horario actualizado.';await reload();return;
  }
+ if(form.id==='live-automations'){
+  const values=new FormData(form);
+  const settings={ownerAlertsEnabled:values.get('ownerAlertsEnabled')==='on',remindersEnabled:values.get('remindersEnabled')==='on',dailySummaryEnabled:values.get('dailySummaryEnabled')==='on',waitlistEnabled:values.get('waitlistEnabled')==='on',summaryHour:Number(val(form,'summaryHour'))};
+  await request('/automations',{method:'PUT',body:settings});message='Automatizaciones actualizadas. Los correos requieren que SMTP esté configurado.';await reload();return;
+ }
+ if(form.id==='live-waitlist'){
+  const values=new FormData(form);
+  await request('/waitlist',{method:'POST',body:{customerId:val(form,'customerId'),serviceId:val(form,'serviceId'),professionalId:val(form,'professionalId'),day:val(form,'day'),from:val(form,'from'),to:val(form,'to'),notifyConsent:values.get('notifyConsent')==='on'}});
+  message='Cliente añadido a la lista de espera.';await reload();return;
+ }
  if(form.id==='live-publish'){
   await request('/business',{method:'PATCH',body:{name:val(form,'name'),privacyUrl:val(form,'privacyUrl'),publicBookingEnabled:new FormData(form).get('enabled')==='on'}});
   session=await request<UserSession>('/me');message='Configuración pública guardada.';await reload();return;
@@ -151,7 +170,7 @@ async function submit(form:HTMLFormElement){
   if(!selectedSlot)throw new Error('Elige una hora disponible.');
   const slug=publicData!.business.slug;
   const acceptedPrivacy=new FormData(form).get('acceptedPrivacy')==='on';
-  await request('/public/'+encodeURIComponent(slug)+'/book',{method:'POST',body:{...publicParams,time:selectedSlot,name:val(form,'name'),phone:val(form,'phone'),acceptedPrivacy,website:val(form,'website')}});
+  await request('/public/'+encodeURIComponent(slug)+'/book',{method:'POST',body:{...publicParams,time:selectedSlot,name:val(form,'name'),phone:val(form,'phone'),email:val(form,'email'),reminderConsent:new FormData(form).get('reminderConsent')==='on',acceptedPrivacy,website:val(form,'website')}});
   message='Solicitud recibida. Espera la confirmación del establecimiento.';
   await loadSlots();render();return;
  }
@@ -161,7 +180,7 @@ async function click(event:MouseEvent){
  if(!button)return;
  try{
   error='';message='';
-  if(button.dataset.nav){screen=button.dataset.nav as Screen;render();return}
+  if(button.dataset.nav){screen=button.dataset.nav as Screen;if(screen==='automatizaciones')await reload();else render();return}
   const action=button.dataset.action,id=button.dataset.id;
   if(action==='toggle-signup'){signup=!signup;render();return}
   if(action==='logout'){await request('/auth/logout',{method:'POST'});session=null;data=null;render();return}
@@ -174,6 +193,7 @@ async function click(event:MouseEvent){
    repeatDraft={clientId:id,serviceId:last.last?.serviceId??data?.services[0]?.id??'',professionalId:last.last?.professionalId??data?.professionals[0]?.id??'',time:last.last?time(last.last.startMinute):'10:00'};
    day=dayOffset(1);screen='agenda';message='Elige un día y confirma la nueva cita del cliente habitual.';await reload();return;
   }
+  if(action==='waitlist-delete'&&id){await request('/waitlist/'+encodeURIComponent(id),{method:'DELETE'});message='Cliente retirado de la lista de espera.';await reload();return}
   if(action==='copy-public'){
    await navigator.clipboard.writeText(location.origin+'/r/'+session!.business.slug);message='Enlace copiado.';render();return;
   }
