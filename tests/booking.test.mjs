@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {seedData,saveAppointment,cancelAppointment,sortedAppointments,createClient,createService,conflict,availableTimes,shiftDay,dayOffset,latestForClient,setHours,addClosure,withinOpeningHours,openingBlocks,weekday} from '../dist/assets/js/booking/model.js';
+import {seedData,saveAppointment,cancelAppointment,sortedAppointments,createClient,createService,conflict,availableTimes,shiftDay,dayOffset,latestForClient,setHours,addClosure,withinOpeningHours,openingBlocks,weekday,addWaitEntry,availableWaitMatches,nextDayReminders,tomorrowSummary} from '../dist/assets/js/booking/model.js';
 const mk=()=>seedData('2026-11-23');
 const booking=(changes={})=>({clientId:'c1',serviceId:'s1',professionalId:'p1',day:'2026-11-25',time:'10:00',channel:'telefono',...changes});
 test('La demo se inicia con una agenda unificada de cuatro canales',()=>{
@@ -90,4 +90,29 @@ test('Vacaciones del negocio y ausencias individuales bloquean nuevas citas',()=
  assert.equal(saveAppointment(db,booking({professionalId:'p2'})).ok,true);
  assert.equal(addClosure(db,'2026-11-26','Cerrado').ok,true);
  assert.equal(availableTimes(db,'2026-11-26','p2','s1').length,0);
+});
+
+test('La demo propone un cliente de la lista de espera tras una cancelación',()=>{
+ const db=mk();
+ assert.equal(availableWaitMatches(db).length,0);
+ assert.equal(cancelAppointment(db,'a1'),true);
+ const matches=availableWaitMatches(db);
+ assert.ok(matches.length>=1);
+ assert.equal(matches[0].entry.clientId,'c2');
+ assert.equal(matches[0].entry.day,'2026-11-23');
+ db.automation.waitlist=false;
+ assert.equal(availableWaitMatches(db).length,0);
+});
+test('La lista de espera evita duplicados y no envía mensajes en la demo',()=>{
+ const db=mk();
+ assert.equal(addWaitEntry(db,{clientId:'c2',serviceId:'s1',professionalId:'p1',day:'2026-11-23',from:'09:00',to:'13:00'}).ok,false);
+ assert.equal(addWaitEntry(db,{clientId:'c3',serviceId:'s1',professionalId:'p1',day:'2026-11-23',from:'09:00',to:'13:00'}).ok,true);
+ assert.equal(db.waitlist.length,2);
+});
+test('Resumen y recordatorios de mañana se calculan desde citas confirmadas',()=>{
+ const db=mk();
+ assert.equal(nextDayReminders(db,'2026-11-23').length,1);
+ assert.match(tomorrowSummary(db,'2026-11-23'),/Isabel Martín/);
+ db.automation.reminders=false;
+ assert.equal(nextDayReminders(db,'2026-11-23').length,0);
 });
