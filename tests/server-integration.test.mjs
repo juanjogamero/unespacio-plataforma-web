@@ -4,6 +4,7 @@ import {database,migrate} from '../server/db.mjs';
 import {register,authenticate,requireCSRF} from '../server/auth.mjs';
 import {daysFrom,weekday,localDate} from '../server/domain.mjs';
 import {createApp} from '../server/app.mjs';
+import {getAutomations,putAutomations,addWaitlist,listWaitlist,scheduleReminders,scheduleDigests,processQueue} from '../server/automations.mjs';
 import {saveManual,agenda,businessBySlug,requestPublic,confirmRequest,freeSlots,dbConflict} from '../server/booking.mjs';
 const slug='ci-unspace-'+Math.random().toString(36).slice(2,12);
 const slug2='ci-other-'+Math.random().toString(36).slice(2,12);
@@ -78,6 +79,45 @@ test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes
   }finally{
    await new Promise(resolve=>http.close(resolve));
   }
+  // Verificación de avisos sin enviar correos: el emisor de prueba solo guarda en memoria.
+  assert.equal((await getAutomations(b1)).remindersEnabled,false);
+  assert.equal((await getAutomations(b2)).ownerAlertsEnabled,false);
+  await putAutomations(b1,{ownerAlertsEnabled:true,remindersEnabled:true,dailySummaryEnabled:true,waitlistEnabled:true,summaryHour:18});
+  await db.query('UPDATE customers SET email=$2,reminder_consent=true WHERE business_id=$1 AND id=$3',[b1,'cliente@example.invalid',c]);
+  const queuedPublic=await requestPublic(slug,{name:'Solicitud para aviso',phone:'600 123 456',serviceId:svc,professionalId:pro,day,time:'12:30',acceptedPrivacy:true});
+  assert.equal(queuedPublic.status,'pendiente');
+  let jobs=(await db.query("SELECT * FROM notification_queue WHERE business_id=$1 AND kind='owner_request'",[b1])).rows;
+  assert.equal(jobs.length,1);
+  assert.equal(jobs[0].recipient_email,email);
+  const wait=await addWaitlist(b1,{customerId:c,serviceId:svc,professionalId:pro,day,from:'12:00',to:'13:00',notifyConsent:true});
+  assert.equal(wait.status,'active');
+  assert.equal((await listWaitlist(b2)).length,0);
+  assert.equal((await listWaitlist(b1)).length,1);
+  const soon=await saveManual(b1,{clientId:c,serviceId:svc,professionalId:pro,day,time:'12:00',channel:'telefono'});
+  assert.equal(soon.status,'confirmada');
+  const cancelled=await import('../server/booking.mjs').then(x=>x.cancel(b1,soon.id));
+  assert.equal(cancelled.status,'cancelada');
+  const waitJobs=(await db.query("SELECT * FROM notification_queue WHERE business_id=$1 AND kind='waitlist_open'",[b1])).rows;
+  assert.equal(waitJobs.length,1);
+  assert.equal(waitJobs[0].recipient_email,'cliente@example.invalid');
+  const futureCount=await scheduleReminders(new Date(),db);
+  assert.ok(futureCount>=1);
+  const duplicateCount=await scheduleReminders(new Date(),db);
+  assert.equal(duplicateCount,0);
+  assert.ok(await scheduleDigests(new Date(),db)>=1);
+  // Forzar vencimiento únicamente en la base efímera de CI.
+  await db.query("UPDATE notification_queue SET due_at=now()-interval '1 minute' WHERE business_id=$1",[b1]);
+  const delivered=[];
+  const sent=await processQueue(async mail=>{delivered.push(mail)},{db,max:30});
+  assert.equal(sent.failed,0);
+  assert.ok(sent.sent>=3);
+  assert.ok(delivered.some(m=>m.to===email&&m.subject.includes('solicitud')));
+  assert.ok(delivered.some(m=>m.to==='cliente@example.invalid'&&m.subject.includes('hueco')));
+  const waitAfter=await db.query('SELECT status FROM waitlist_entries WHERE id=$1',[wait.id]);
+  assert.equal(waitAfter.rows[0].status,'notified');
+  const resent=await processQueue(async mail=>{delivered.push(mail)},{db,max:30});
+  assert.equal(resent.sent,0);
+  assert.equal((await db.query("SELECT count(*)::int AS count FROM notification_queue WHERE business_id=$1 AND status='sent'",[b1])).rows[0].count,sent.sent);
 
  }finally{
   if(b1)await database().query('DELETE FROM businesses WHERE id=$1',[b1]);
