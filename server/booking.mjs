@@ -28,7 +28,7 @@ export async function businessData(id){
  const [services,professionals,customers,hours,closures]=await Promise.all([
   rows(database(),'SELECT id,name,minutes,price_cents,active FROM services WHERE business_id=$1 ORDER BY name',[id]),
   rows(database(),'SELECT id,name,active FROM professionals WHERE business_id=$1 ORDER BY name',[id]),
-  rows(database(),'SELECT id,name,phone,preference FROM customers WHERE business_id=$1 ORDER BY name LIMIT 500',[id]),
+  rows(database(),'SELECT id,name,phone,preference,email,reminder_consent FROM customers WHERE business_id=$1 ORDER BY name LIMIT 500',[id]),
   rows(database(),'SELECT weekday,slot,open_min,close_min FROM business_hours WHERE business_id=$1 ORDER BY weekday,slot',[id]),
   rows(database(),"SELECT id,day::text,professional_id,reason FROM closures WHERE business_id=$1 AND day >= current_date ORDER BY day LIMIT 120",[id])
  ]);
