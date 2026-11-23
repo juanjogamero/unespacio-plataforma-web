@@ -116,7 +116,10 @@ export async function queueWaitlistForCancellation(db,businessId,cancelled){
  return 0;
 }
 async function isEligible(db,job){
- if(job.kind==='owner_request')return true;
+ if(job.kind==='owner_request'){
+  const row=await one(db,"SELECT a.status,st.owner_alerts_enabled FROM appointments a JOIN automation_settings st ON st.business_id=a.business_id WHERE a.business_id=$1 AND a.id=$2",[job.business_id,job.appointment_id]);
+  return row?.status==='pendiente'&&row.owner_alerts_enabled===true;
+ }
  if(job.kind==='daily_summary'){
   const st=await one(db,'SELECT daily_summary_enabled FROM automation_settings WHERE business_id=$1',[job.business_id]);
   return st?.daily_summary_enabled===true;
@@ -128,8 +131,21 @@ async function isEligible(db,job){
   return dt.isValid&&dt.toMillis()>Date.now()+30*60000;
  }
  if(job.kind==='waitlist_open'){
-  const a=await one(db,"SELECT w.status,w.notify_consent,c.email,st.waitlist_enabled FROM waitlist_entries w JOIN customers c ON c.business_id=w.business_id AND c.id=w.customer_id JOIN automation_settings st ON st.business_id=w.business_id WHERE w.business_id=$1 AND w.id=$2",[job.business_id,job.waitlist_id]);
-  return Boolean(a?.status==='active'&&a.notify_consent&&a.waitlist_enabled&&a.email===job.recipient_email);
+  const w=await one(db,"SELECT w.status,w.notify_consent,w.day::text,w.professional_id,w.from_min,w.to_min,c.email,st.waitlist_enabled,s.minutes FROM waitlist_entries w JOIN customers c ON c.business_id=w.business_id AND c.id=w.customer_id JOIN automation_settings st ON st.business_id=w.business_id JOIN services s ON s.business_id=w.business_id AND s.id=w.service_id WHERE w.business_id=$1 AND w.id=$2",[job.business_id,job.waitlist_id]);
+  if(!w||w.status!=='active'||!w.notify_consent||!w.waitlist_enabled||w.email!==job.recipient_email)return false;
+  const cancelledId=job.event_key.split(':')[1];
+  if(!validUUID(cancelledId))return false;
+  const cancelled=await one(db,"SELECT id,day::text,start_min,end_min,professional_id FROM appointments WHERE business_id=$1 AND id=$2 AND status='cancelada'",[job.business_id,cancelledId]);
+  if(!cancelled||cancelled.day!==w.day||String(cancelled.professional_id)!==String(w.professional_id))return false;
+  const hours=await rows(db,'SELECT weekday,open_min,close_min FROM business_hours WHERE business_id=$1 AND weekday=$2',[job.business_id,weekday(w.day)]);
+  const closures=await rows(db,'SELECT day::text,professional_id FROM closures WHERE business_id=$1 AND day=$2::date',[job.business_id,w.day]);
+  const occupied=await rows(db,"SELECT day::text,professional_id,start_min,end_min,status FROM appointments WHERE business_id=$1 AND day=$2::date AND professional_id=$3 AND status='confirmada'",[job.business_id,w.day,w.professional_id]);
+  const firstMinute=Math.ceil(Math.max(w.from_min,cancelled.start_min)/15)*15;
+  const limit=Math.min(w.to_min,cancelled.end_min);
+  for(let m=firstMinute;m+w.minutes<=limit;m+=15){
+   if(isAvailableWindow(hours,closures,occupied,{day:w.day,professionalId:w.professional_id,start:m,end:m+w.minutes}))return true;
+  }
+  return false;
  }
  return false;
 }
