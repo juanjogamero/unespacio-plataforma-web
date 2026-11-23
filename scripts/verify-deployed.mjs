@@ -69,7 +69,7 @@ try{
  await wait("Boolean(document.querySelector('#booking-form'))");
  await js("(()=>{const f=document.querySelector('#booking-form');f.querySelector('[name=\"clientName\"]').value='Cliente QA ficticio';f.querySelector('[name=\"time\"]').value='16:00';f.requestSubmit();return true})()");
  await wait("Boolean(document.querySelector('.appointment-list')?.textContent.includes('Cliente QA ficticio'))");
- const count=await js("JSON.parse(localStorage.getItem('unespacio.citas.demo.v2')).appointments.filter(a=>a.status==='confirmada'&&a.time==='16:00'&&a.clientId).length");
+ const count=await js("JSON.parse(localStorage.getItem('unespacio.citas.demo.v3')).appointments.filter(a=>a.status==='confirmada'&&a.time==='16:00'&&a.clientId).length");
  if(count<1)throw new Error('La nueva cita no se ha persistido en la demo');
  console.log('Cita manual guardada en la agenda y persistencia local comprobada.');
  await viewport(390,844);await sleep(400);
@@ -80,6 +80,11 @@ try{
  await js("location.hash='#/reservar';true");
  await wait("Boolean(document.querySelector('.online-slots'))");
  await picture('reserva-online-movil');
+ await js("location.hash='#/automatizaciones';true");
+ await wait("Boolean(document.querySelector('.automation-features')&&document.querySelector('#waitlist-form'))");
+ await picture('automatizaciones-movil');
+ const reminderLabel=await js("document.querySelector('.automation-warning')?.textContent.includes('no envía correos')");
+ if(!reminderLabel)throw new Error('Falta la advertencia sobre el carácter simulado de los avisos');
  console.log('Verificación funcional y responsive completa.');
 }finally{
  if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
