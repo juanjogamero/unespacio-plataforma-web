@@ -307,3 +307,16 @@ p{line-height:1.6}
 @media(max-width:1250px){.automation-features{grid-template-columns:1fr}.automation-feature{align-items:center}.automation-feature .automation-switch{margin-left:auto}}
 @media(max-width:950px){.automation-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.automation-feature{padding:15px}.automation-task{align-items:flex-start;flex-wrap:wrap}.automation-task button{margin-left:43px}.automation-panel .panel-head{padding:19px 16px 13px}.automation-tasks,.waitlist-list{padding-inline:14px}.automation-wait-form{padding:0 15px 18px}.automation-foot{padding:12px 15px}.automation-feature .automation-switch{font-size:10px}}
+
+.automation-setting{display:flex;align-items:flex-start;gap:13px;padding:16px 0;border-bottom:1px solid #e6eee8;cursor:pointer}
+.automation-setting input{width:19px;height:19px;margin:2px 0 0;accent-color:#267152;flex:none}
+.automation-setting span{display:grid;gap:5px}
+.automation-setting strong{font-size:13px;color:#295842}
+.automation-setting small{font-size:12px;color:#7c8f81;line-height:1.5}
+.automation-history{margin:14px 0;display:grid;gap:6px}
+.automation-history-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #e9efe8}
+.automation-history-row strong{font-size:12px}
+.automation-history-row span{font-size:12px;color:#477a5e}
+.live-shell .waitlist-list{padding:12px 0}
+.live-shell .waitlist-row{flex-wrap:wrap}
+.live-shell .automation-warning{margin-top:0}
