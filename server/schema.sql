@@ -103,4 +103,63 @@ BEGIN
 END;
 $unspace$;
 CREATE INDEX IF NOT EXISTS appointments_business_day_idx ON appointments(business_id,day);
+
+-- Automatización opcional y transparente: el email es un canal adicional, nunca obligatorio.
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reminder_consent boolean NOT NULL DEFAULT false;
+DO $
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='customers_email_valid') THEN
+  ALTER TABLE customers ADD CONSTRAINT customers_email_valid CHECK(
+   email IS NULL OR (length(email) BETWEEN 5 AND 254 AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+
+)
+  );
+ END IF;
+END $;
+CREATE TABLE IF NOT EXISTS automation_settings (
+ business_id uuid PRIMARY KEY REFERENCES businesses(id) ON DELETE CASCADE,
+ owner_alerts_enabled boolean NOT NULL DEFAULT false,
+ reminders_enabled boolean NOT NULL DEFAULT false,
+ daily_summary_enabled boolean NOT NULL DEFAULT false,
+ waitlist_enabled boolean NOT NULL DEFAULT false,
+ summary_hour smallint NOT NULL DEFAULT 18 CHECK(summary_hour BETWEEN 7 AND 21)
+);
+CREATE TABLE IF NOT EXISTS waitlist_entries (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+ customer_id uuid NOT NULL,
+ service_id uuid NOT NULL,
+ professional_id uuid NOT NULL,
+ day date NOT NULL,
+ from_min smallint NOT NULL CHECK(from_min BETWEEN 0 AND 1439),
+ to_min smallint NOT NULL CHECK(to_min BETWEEN 1 AND 1440 AND to_min>from_min),
+ notify_consent boolean NOT NULL DEFAULT false,
+ status text NOT NULL DEFAULT 'active' CHECK(status IN ('active','notified','closed')),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ FOREIGN KEY(business_id,customer_id) REFERENCES customers(business_id,id),
+ FOREIGN KEY(business_id,service_id) REFERENCES services(business_id,id),
+ FOREIGN KEY(business_id,professional_id) REFERENCES professionals(business_id,id)
+);
+CREATE INDEX IF NOT EXISTS waitlist_active_idx ON waitlist_entries(business_id,day,professional_id) WHERE status='active';
+CREATE TABLE IF NOT EXISTS notification_queue (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+ event_key text NOT NULL,
+ kind text NOT NULL CHECK(kind IN ('owner_request','reminder','daily_summary','waitlist_open')),
+ recipient_email text NOT NULL,
+ subject text NOT NULL CHECK(length(subject)<=200),
+ body text NOT NULL,
+ appointment_id uuid REFERENCES appointments(id) ON DELETE CASCADE,
+ waitlist_id uuid REFERENCES waitlist_entries(id) ON DELETE CASCADE,
+ due_at timestamptz NOT NULL,
+ status text NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','sending','sent','cancelled','failed')),
+ attempts smallint NOT NULL DEFAULT 0,
+ locked_at timestamptz,
+ sent_at timestamptz,
+ last_error text,
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(business_id,event_key)
+);
+CREATE INDEX IF NOT EXISTS notification_due_idx ON notification_queue(status,due_at);
+
 COMMIT;
