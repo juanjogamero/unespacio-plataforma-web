@@ -5,10 +5,21 @@ export interface Service {id:string;name:string;minutes:number;price:number}
 export interface Professional {id:string;name:string;initials:string}
 export interface Client {id:string;name:string;phone:string;preference:Preference}
 export interface Appointment {id:string;clientId:string;serviceId:string;professionalId:string;day:string;time:string;channel:Channel;status:AppointmentStatus}
-export interface DemoData {services:Service[];professionals:Professional[];clients:Client[];appointments:Appointment[]}
+export interface HourBlock {open:string;close:string}
+export interface Closure {id:string;day:string;reason:string;professionalId:string|null}
+export interface BusinessSettings {name:string;slug:string;timezone:string;hours:Record<string,HourBlock[]>;closures:Closure[]}
+export interface DemoData {services:Service[];professionals:Professional[];clients:Client[];appointments:Appointment[];settings:BusinessSettings}
 export interface BookingInput {clientId:string;serviceId:string;professionalId:string;day:string;time:string;channel:Channel}
 export const CHANNEL_LABEL:Record<Channel,string>={telefono:'Teléfono',whatsapp:'WhatsApp',local:'En el local',online:'Online'};
-export const STORAGE_KEY='unespacio.citas.demo.v1';
+export const STORAGE_KEY='unespacio.citas.demo.v2';
+export const DEFAULT_HOURS:Record<string,HourBlock[]>={
+ '0':[],'1':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
+ '2':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
+ '3':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
+ '4':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
+ '5':[{open:'09:00',close:'14:00'},{open:'16:00',close:'20:00'}],
+ '6':[{open:'09:00',close:'14:00'}]};
+export const WEEKDAYS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const two=(n:number)=>String(n).padStart(2,'0');
 export function localISO(d:Date):string{return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate())}
 export function dayOffset(days=0,base=new Date()):string{const d=new Date(base.getFullYear(),base.getMonth(),base.getDate()+days);return localISO(d)}
@@ -29,7 +40,7 @@ export function seedData(today=dayOffset()):DemoData{
   {id:'a4',clientId:'c4',serviceId:'s4',professionalId:'p2',day:shiftDay(today,1),time:'10:30',channel:'online',status:'confirmada'},
   {id:'a5',clientId:'c1',serviceId:'s1',professionalId:'p1',day:shiftDay(today,-21),time:'11:30',channel:'telefono',status:'confirmada'}
  ];
- return {services,professionals,clients,appointments};
+ return {services,professionals,clients,appointments,settings:{name:'Barbería del Barrio',slug:'barberia-del-barrio',timezone:'Europe/Madrid',hours:structuredClone(DEFAULT_HOURS),closures:[]}};
 }
 function isData(v:unknown):v is DemoData{
  if(!v||typeof v!=='object')return false;
@@ -37,7 +48,12 @@ function isData(v:unknown):v is DemoData{
  return ['services','professionals','clients','appointments'].every(k=>Array.isArray(x[k]));
 }
 export function loadDemo():DemoData{
- try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const data:unknown=JSON.parse(raw);if(isData(data))return data}}catch{}
+ try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const data:unknown=JSON.parse(raw);if(isData(data)){
+  const existing=data as DemoData;
+  if(!existing.settings||typeof existing.settings!=='object')existing.settings=seedData().settings;
+  if(!existing.settings.hours||!existing.settings.closures)existing.settings=seedData().settings;
+  return existing;
+ }}}catch{}
  return seedData();
 }
 export function persistDemo(db:DemoData):boolean{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(db));return true}catch{return false}}
@@ -56,6 +72,37 @@ export function conflict(db:DemoData,input:BookingInput,excludeId?:string):boole
   return from<otherTo&&to>otherFrom;
  });
 }
+export function weekday(day:string):number{return parseDay(day).getDay()}
+export function openingBlocks(db:DemoData,day:string):HourBlock[]{return db.settings.hours[String(weekday(day))]??[]}
+export function isClosed(db:DemoData,day:string,professionalId:string):boolean{
+ return db.settings.closures.some(c=>c.day===day&&(c.professionalId===null||c.professionalId===professionalId));
+}
+export function withinOpeningHours(db:DemoData,day:string,time:string,duration:number,professionalId:string):boolean{
+ if(isClosed(db,day,professionalId))return false;
+ const start=timeMinutes(time),end=start+duration;
+ return openingBlocks(db,day).some(b=>start>=timeMinutes(b.open)&&end<=timeMinutes(b.close));
+}
+export function setHours(db:DemoData,weekdayNumber:number,blocks:HourBlock[]):{ok:boolean;message:string}{
+ if(!Number.isInteger(weekdayNumber)||weekdayNumber<0||weekdayNumber>6)return {ok:false,message:'Día de la semana incorrecto.'};
+ if(blocks.length>3)return {ok:false,message:'No puedes añadir más de tres turnos por día.'};
+ const sorted=[...blocks].sort((a,b)=>timeMinutes(a.open)-timeMinutes(b.open));
+ let previousEnd=0;
+ for(const b of sorted){
+  if(!/^\\d{2}:\\d{2}$/.test(b.open)||!/^\\d{2}:\\d{2}$/.test(b.close))return {ok:false,message:'Escribe una hora válida.'};
+  const start=timeMinutes(b.open),end=timeMinutes(b.close);
+  if(start<0||end>1440||end-start<15||start<previousEnd)return {ok:false,message:'Los turnos no deben solaparse y deben durar al menos 15 minutos.'};
+  previousEnd=end;
+ }
+ db.settings.hours[String(weekdayNumber)]=sorted;
+ return {ok:true,message:'Horario actualizado.'};
+}
+export function addClosure(db:DemoData,day:string,reason:string,professionalId:string|null=null):{ok:boolean;message:string}{
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day)||localISO(parseDay(day))!==day)return {ok:false,message:'Fecha no válida.'};
+ if(professionalId!==null&&!db.professionals.some(p=>p.id===professionalId))return {ok:false,message:'Profesional desconocido.'};
+ if(db.settings.closures.some(c=>c.day===day&&c.professionalId===professionalId))return {ok:false,message:'Ese cierre ya está registrado.'};
+ db.settings.closures.push({id:uid(),day,reason:reason.trim().slice(0,120)||'Día no disponible',professionalId});
+ return {ok:true,message:'Día bloqueado. Las citas existentes no se cancelan automáticamente.'};
+}
 export function saveAppointment(db:DemoData,input:BookingInput,editingId?:string):{ok:boolean;message:string;appointment?:Appointment}{
  if(!db.clients.some(c=>c.id===input.clientId))return {ok:false,message:'Selecciona un cliente.'};
  const service=db.services.find(s=>s.id===input.serviceId);
@@ -64,7 +111,7 @@ export function saveAppointment(db:DemoData,input:BookingInput,editingId?:string
  if(!/^\d{4}-\d{2}-\d{2}$/.test(input.day)||!Number.isFinite(parseDay(input.day).getTime())||localISO(parseDay(input.day))!==input.day)return {ok:false,message:'Selecciona una fecha válida.'};
  if(!/^\d{2}:\d{2}$/.test(input.time))return {ok:false,message:'Selecciona una hora válida.'};
  const start=timeMinutes(input.time),end=start+service.minutes;
- if(start<8*60||end>21*60||start%5!==0)return {ok:false,message:'Elige un horario entre las 08:00 y las 21:00 que permita completar el servicio.'};
+ if(start<0||end>24*60||start%5!==0||!withinOpeningHours(db,input.day,input.time,service.minutes,input.professionalId))return {ok:false,message:'Ese horario queda fuera de la apertura o está bloqueado. Revisa los turnos del negocio.'};
  if(!Object.keys(CHANNEL_LABEL).includes(input.channel))return {ok:false,message:'Selecciona el canal de reserva.'};
  if(conflict(db,input,editingId))return {ok:false,message:'Ese profesional ya tiene una cita en ese horario. Prueba con otra hora.'};
  const previous=editingId?db.appointments.find(a=>a.id===editingId&&a.status==='confirmada'):undefined;
@@ -86,8 +133,12 @@ export function createService(db:DemoData,name:string,minutes:number,price:numbe
 }
 export function availableTimes(db:DemoData,day:string,professionalId:string,serviceId:string):string[]{
  const times:string[]=[];
- const first=8*60,last=21*60;
- for(let m=first;m<last;m+=30){const time=minutesTime(m);if(!conflict(db,{clientId:'',serviceId,professionalId,day,time,channel:'online'})&&m+(db.services.find(s=>s.id===serviceId)?.minutes??999)<=last)times.push(time)}
+ const service=db.services.find(s=>s.id===serviceId);
+ if(!service||!db.professionals.some(p=>p.id===professionalId)||isClosed(db,day,professionalId))return times;
+ for(const block of openingBlocks(db,day))for(let m=timeMinutes(block.open);m+service.minutes<=timeMinutes(block.close);m+=15){
+  const time=minutesTime(m);
+  if(!conflict(db,{clientId:'',serviceId,professionalId,day,time,channel:'online'}))times.push(time);
+ }
  return times;
 }
 export function latestForClient(db:DemoData,clientId:string):Appointment|undefined{
