@@ -100,6 +100,23 @@ function servicesView():string{
  '<section class="panel list-panel"><div class="panel-head"><div><span class="kicker">CATÁLOGO</span><h2>Servicios disponibles</h2></div><span class="count-pill">'+db.services.length+' servicios</span></div><div class="service-grid">'+cards+'</div></section>'+
  '<section class="panel list-panel"><div class="panel-head"><div><span class="kicker">EQUIPO DE EJEMPLO</span><h2>Profesionales</h2></div></div><div class="professional-grid">'+people+'</div><p class="muted footer-note">Esta primera demostración incluye dos profesionales ficticios. La gestión completa del equipo quedará para una fase posterior.</p></section>';
 }
+function hoursView():string{
+ const days=[1,2,3,4,5,6,0];
+ const rows=days.map(d=>{
+  const blocks=db.settings.hours[String(d)]??[];
+  const b1=blocks[0],b2=blocks[1];
+  return '<div class="hours-row"><strong>'+WEEKDAYS[d]+'</strong><div class="hours-times">'+
+   '<label><span>Desde</span><input aria-label="Apertura de '+WEEKDAYS[d]+'" type="time" name="open1_'+d+'" value="'+(b1?.open??'')+'"></label><label><span>Hasta</span><input aria-label="Cierre de '+WEEKDAYS[d]+'" type="time" name="close1_'+d+'" value="'+(b1?.close??'')+'"></label>'+
+   '<label><span>Desde (tarde)</span><input type="time" name="open2_'+d+'" value="'+(b2?.open??'')+'"></label><label><span>Hasta (tarde)</span><input type="time" name="close2_'+d+'" value="'+(b2?.close??'')+'"></label>'+
+   '</div></div>';
+ }).join('');
+ const closures=db.settings.closures.slice().sort((a,b)=>a.day.localeCompare(b.day)).map(c=>'<div class="closure-item"><span><strong>'+esc(formatDay(c.day))+'</strong><small>'+esc(c.reason)+' · '+(c.professionalId?esc(professionalName(c.professionalId)):'Todo el negocio')+'</small></span><button data-action="closure-remove" data-id="'+esc(c.id)+'" aria-label="Eliminar cierre '+esc(c.day)+'">'+icon('x')+' Quitar</button></div>').join('');
+ return pageHeading('DISPONIBILIDAD REALISTA','Horarios y descansos','Organiza turnos partidos, días libres y vacaciones. Los huecos online y las citas manuales respetarán estos horarios.', '')+
+ '<div class="settings-layout"><section class="panel settings-panel"><span class="kicker">DATOS DEL NEGOCIO</span><h2>Tu establecimiento</h2><form id="business-form" class="settings-form"><label class="field">Nombre comercial<input name="name" type="text" maxlength="70" value="'+esc(db.settings.name)+'" required></label><p class="muted">Este nombre aparece en las confirmaciones y en la reserva online simulada.</p><button class="button secondary" type="submit">Guardar nombre</button></form></section>'+
+ '<section class="panel settings-panel hours-panel"><span class="kicker">JORNADA HABITUAL</span><h2>Horario semanal</h2><p class="muted">Deja un turno vacío cuando el negocio esté cerrado. Puedes indicar mañana y tarde por separado.</p><form id="hours-form"><div class="hours-list">'+rows+'</div><p class="dialog-error" role="alert"></p><button class="button primary" type="submit">'+icon('check')+' Guardar horarios</button></form></section>'+
+ '<section class="panel settings-panel"><span class="kicker">VACACIONES Y AUSENCIAS</span><h2>Bloquear una fecha</h2><p class="muted">Evita que entren nuevas citas mientras estés cerrado o un profesional esté ausente. Las citas ya existentes no se cancelan automáticamente.</p><form id="closure-form"><div class="form-grid"><label class="field">Día<input name="day" type="date" min="'+dayOffset()+'" value="'+dayOffset(1)+'"></label><label class="field">A quién afecta<select name="professionalId"><option value="">Todo el negocio</option>'+selectable(db.professionals,'')+'</select></label></div><label class="field">Motivo<input name="reason" maxlength="120" placeholder="Ej.: vacaciones, festivo"></label><p class="dialog-error" role="alert"></p><button class="button secondary" type="submit">'+icon('plus')+' Añadir bloqueo</button></form><div class="closure-list">'+(closures||'<p class="muted">No hay cierres especiales registrados.</p>')+'</div></section></div>';
+}
+
 function onlineView():string{
  if(!db.services.some(s=>s.id===onlineService))onlineService=db.services[0]?.id??'';
  if(!db.professionals.some(p=>p.id===onlineProfessional))onlineProfessional=db.professionals[0]?.id??'';
