@@ -16,6 +16,7 @@ let day=dayOffset();
 let error='';
 let message='';
 let signup=false;
+let repeatDraft:{clientId:string;serviceId:string;professionalId:string;time:string}|null=null;
 let publicData:{business:{name:string;slug:string;privacyUrl:string};services:Service[];professionals:Person[]}|null=null;
 let publicSlots:string[]=[];
 let selectedSlot='';
@@ -58,13 +59,13 @@ function layout():string{
 }
 function agendaPage():string{
  const rows=appointments.map(a=>'<div class="live-appointment"><div class="live-hour">'+time(a.start_min)+'</div><div><strong>'+escape(a.customer_name)+'</strong><p>'+escape(a.service_name)+' · '+escape(a.professional_name)+' · '+escape(CHANNEL_LABEL[a.source])+'</p></div><span class="status '+a.status+'">'+(a.status==='pendiente'?'Pendiente':a.status==='cancelada'?'Cancelada':'Confirmada')+'</span><div class="live-actions">'+(a.status==='pendiente'?'<button data-action="confirm" data-id="'+a.id+'">Confirmar</button>':'')+(a.status!=='cancelada'?'<button data-action="cancel" data-id="'+a.id+'">Cancelar</button>':'')+'</div></div>').join('');
- const options=(list:{id:string;name:string}[])=>list.map(x=>'<option value="'+escape(x.id)+'">'+escape(x.name)+'</option>').join('');
+ const options=(list:{id:string;name:string}[],selected='')=>list.map(x=>'<option value="'+escape(x.id)+'"'+(x.id===selected?' selected':'')+'>'+escape(x.name)+'</option>').join('');
  return '<section class="page-heading"><div><span class="kicker">CITAS DE TODOS LOS CANALES</span><h1>Tu agenda diaria</h1><p>Registra una llamada, un WhatsApp o una cita en persona en pocos pasos.</p></div></section>'+
- '<div class="live-two"><section class="panel settings-panel"><span class="kicker">NUEVA CITA</span><h2>Apuntar una reserva</h2><form id="live-booking"><label class="field">Cliente habitual<select name="clientId"><option value="">Cliente nuevo</option>'+options(data?.customers??[])+'</select></label><label class="field">Si es nuevo, su nombre<input name="clientName" maxlength="100" placeholder="Nombre y apellido"></label><div class="form-grid"><label class="field">Servicio<select name="serviceId" required>'+options(data?.services.filter(s=>s.active)??[])+'</select></label><label class="field">Profesional<select name="professionalId" required>'+options(data?.professionals.filter(p=>p.active)??[])+'</select></label><label class="field">Día<input type="date" name="day" value="'+day+'" required></label><label class="field">Hora<input type="time" name="time" step="300" value="10:00" required></label></div><label class="field">Cómo ha reservado<select name="channel"><option value="telefono">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="local">En persona</option></select></label><button class="button primary submit-wide" type="submit">Guardar cita</button></form></section>'+
+ '<div class="live-two"><section class="panel settings-panel"><span class="kicker">NUEVA CITA</span><h2>Apuntar una reserva</h2><form id="live-booking"><label class="field">Cliente habitual<select name="clientId"><option value="">Cliente nuevo</option>'+options(data?.customers??[],repeatDraft?.clientId??'')+'</select></label><label class="field">Si es nuevo, su nombre<input name="clientName" maxlength="100" placeholder="Nombre y apellido"></label><div class="form-grid"><label class="field">Servicio<select name="serviceId" required>'+options(data?.services.filter(s=>s.active)??[],repeatDraft?.serviceId??'')+'</select></label><label class="field">Profesional<select name="professionalId" required>'+options(data?.professionals.filter(p=>p.active)??[],repeatDraft?.professionalId??'')+'</select></label><label class="field">Día<input type="date" name="day" value="'+day+'" required></label><label class="field">Hora<input type="time" name="time" step="300" value="'+escape(repeatDraft?.time??'10:00')+'" required></label></div><label class="field">Cómo ha reservado<select name="channel"><option value="telefono">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="local">En persona</option></select></label><button class="button primary submit-wide" type="submit">Guardar cita</button></form></section>'+
  '<section class="panel settings-panel"><div class="live-day-header"><div><span class="kicker">EL DÍA</span><h2>'+escape(formatDay(day))+'</h2></div><input id="live-day" type="date" value="'+day+'"></div><div class="live-list">'+(rows||'<div class="empty-state"><h3>Sin citas todavía</h3><p>Las reservas del establecimiento aparecerán aquí.</p></div>')+'</div></section></div>';
 }
 function clientsPage():string{
- const cards=(data?.customers??[]).map(c=>'<div class="client-card"><div class="client-avatar">'+escape(c.name.slice(0,1))+'</div><div class="client-details"><strong>'+escape(c.name)+'</strong><small>'+escape(CHANNEL_LABEL[c.preference])+'</small>'+(c.phone?'<p>'+escape(c.phone)+'</p>':'')+'</div></div>').join('');
+ const cards=(data?.customers??[]).map(c=>'<div class="client-card"><div class="client-avatar">'+escape(c.name.slice(0,1))+'</div><div class="client-details"><strong>'+escape(c.name)+'</strong><small>'+escape(CHANNEL_LABEL[c.preference])+'</small>'+(c.phone?'<p>'+escape(c.phone)+'</p>':'')+'<button class="button secondary client-repeat" type="button" data-action="repeat-live" data-id="'+escape(c.id)+'">Repetir última cita</button></div></div>').join('');
  return '<section class="page-heading"><div><span class="kicker">TRATO PERSONAL</span><h1>Clientes habituales</h1><p>Guarda solo los datos necesarios, sin exigir una cuenta a tus clientes.</p></div></section><div class="live-two"><section class="panel settings-panel"><h2>Añadir cliente</h2><form id="live-client"><label class="field">Nombre<input name="name" maxlength="100" required></label><label class="field">Teléfono (opcional)<input name="phone" type="tel" maxlength="30"></label><label class="field">Canal preferido<select name="preference"><option value="telefono">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="local">En persona</option><option value="online">Online</option></select></label><button class="button primary" type="submit">Guardar cliente</button></form></section><section class="panel settings-panel"><h2>'+cards.length+' clientes</h2><div class="client-grid">'+(cards||'<p class="muted">Todavía no hay clientes.</p>')+'</div></section></div>';
 }
 function servicesPage():string{
@@ -119,7 +120,7 @@ async function submit(form:HTMLFormElement){
  }
  if(form.id==='live-booking'){
   const b={clientId:val(form,'clientId')||undefined,clientName:val(form,'clientName'),serviceId:val(form,'serviceId'),professionalId:val(form,'professionalId'),day:val(form,'day'),time:val(form,'time'),channel:val(form,'channel')};
-  await request('/appointments',{method:'POST',body:b});day=b.day;message='Cita guardada correctamente.';await reload();return;
+  await request('/appointments',{method:'POST',body:b});repeatDraft=null;day=b.day;message='Cita guardada correctamente.';await reload();return;
  }
  if(form.id==='live-client'){
   await request('/clients',{method:'POST',body:{name:val(form,'name'),phone:val(form,'phone'),preference:val(form,'preference')}});
@@ -167,6 +168,11 @@ async function click(event:MouseEvent){
   if(action==='confirm'||action==='cancel'){
    if(action==='cancel'&&!window.confirm('¿Cancelar esta cita?'))return;
    await request('/appointments/'+id+'/'+action,{method:'POST'});message=action==='confirm'?'Solicitud confirmada.':'Cita cancelada.';await reload();return;
+  }
+  if(action==='repeat-live'&&id){
+   const last=await request<{last:{serviceId:string;professionalId:string;startMinute:number}|null}>('/clients/'+encodeURIComponent(id)+'/last');
+   repeatDraft={clientId:id,serviceId:last.last?.serviceId??data?.services[0]?.id??'',professionalId:last.last?.professionalId??data?.professionals[0]?.id??'',time:last.last?time(last.last.startMinute):'10:00'};
+   day=dayOffset(1);screen='agenda';message='Elige un día y confirma la nueva cita del cliente habitual.';await reload();return;
   }
   if(action==='copy-public'){
    await navigator.clipboard.writeText(location.origin+'/r/'+session!.business.slug);message='Enlace copiado.';render();return;
