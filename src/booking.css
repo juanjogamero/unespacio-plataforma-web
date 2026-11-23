@@ -223,3 +223,54 @@ p{line-height:1.6}
 .closure-item .ico{width:14px;height:14px}
 @media(max-width:1150px){.settings-layout{grid-template-columns:1fr}.settings-layout>.settings-panel:last-child{grid-column:auto}}
 @media(max-width:700px){.week-overview{grid-template-columns:repeat(7,112px);padding:12px}.settings-panel{padding:18px}.hours-row{grid-template-columns:1fr;gap:9px}.hours-times{grid-template-columns:repeat(2,minmax(0,1fr))}.view-switch{width:100%;justify-content:center}.view-switch button{flex:1}.mobile-nav .nav-link{font-size:9px;gap:3px;padding-inline:0}.mobile-nav .nav-link .ico{width:18px;height:18px}}
+
+/* Vistas privadas conectadas a la API: no aparecen en la demo de GitHub Pages. */
+.live-auth{min-height:100vh;display:grid;grid-template-columns:minmax(280px,1.05fr) minmax(340px,.95fr);background:#f7f9f5}
+.auth-story{background:#163d3b;color:#fff;padding:clamp(30px,6vw,90px);display:flex;flex-direction:column;justify-content:center;min-height:100vh}
+.auth-story .brand{padding:0;margin-bottom:80px}
+.auth-story .kicker{color:#a4d3b4}
+.auth-story h1{font-size:clamp(34px,4.5vw,60px);max-width:660px;margin:18px 0 25px}
+.auth-story>p{max-width:560px;color:#c8dfd3;font-size:16px}
+.auth-card{max-width:480px;align-self:center;width:calc(100% - 64px);margin:40px auto;padding:30px 20px}
+.auth-card h2{font-size:28px;margin:10px 0}
+.auth-card>p{color:#60796b;font-size:13px}
+.auth-card form{margin-top:28px}
+.auth-card .field input{height:47px}
+.auth-switch{text-align:center;margin:23px 0}
+.auth-switch button{background:transparent;border:0;color:#1b6755;text-decoration:underline;font-weight:800;font-size:13px}
+.live-alert{border-radius:10px;padding:12px 15px;font-size:13px;margin:13px 0}
+.live-alert.error{background:#fdf0ed;border:1px solid #f3cfc7;color:#8b4239}
+.live-alert.success{background:#eaf5ea;border:1px solid #bfdcc7;color:#2f6d49}
+.live-notice{padding:16px 36px;background:#e8f1e9;color:#365b47;font-size:12px;font-weight:750;display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #d0e2d5}
+.live-notice button{background:transparent;border:0;font-weight:800;color:#315e4e;text-decoration:underline}
+.live-two{display:grid;grid-template-columns:minmax(300px,.83fr) minmax(0,1.17fr);gap:20px;align-items:start}
+.live-two .settings-panel{padding:25px}
+.live-day-header{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:15px}
+.live-day-header input{border:1px solid #d8e8dc;color:#2c5b46;border-radius:8px;padding:9px;font-size:12px}
+.live-list{display:grid;gap:9px;margin-top:14px}
+.live-appointment{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #e0ebe4;padding:12px 13px;border-radius:10px}
+.live-appointment .live-hour{font-weight:800;color:#285a45}
+.live-appointment strong{font-size:13px}
+.live-appointment p{margin:4px 0 0;color:#859789;font-size:11px}
+.live-appointment .status{font-size:10px;font-weight:850;border-radius:30px;padding:5px 8px;background:#e4f1e6;color:#42765a}
+.live-appointment .status.pendiente{background:#fff3df;color:#9f6f38}
+.live-appointment .status.cancelada{background:#f3eded;color:#9f6f6a}
+.live-actions{grid-column:2/-1;display:flex;justify-content:flex-end;gap:12px}
+.live-actions button{border:0;background:transparent;color:#327b5b;font-weight:800;font-size:11px}
+.live-service{display:flex;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid #e8eee8}
+.live-service strong{font-size:13px}.live-service span{font-size:12px;color:#698272}
+.live-shell .client-grid{padding:12px 0;grid-template-columns:1fr}
+.live-checkbox{flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
+.live-checkbox input{width:18px;height:18px;flex:none}
+.live-checkbox a{color:#2c7659;text-decoration:underline}
+.live-public-link{background:#eaf2ec;border-radius:9px;border:1px solid #d6e6d8;padding:13px;overflow-wrap:anywhere;font-size:12px;color:#23654a}
+.public-booking{max-width:660px;margin:0 auto;padding:25px 14px 60px}
+.public-header{display:flex;align-items:center;gap:12px;padding:16px 0 28px;color:#1d5a43;font-size:20px}
+.public-booking .online-form-panel{padding:30px}
+.public-booking h1{font-size:clamp(24px,4vw,36px)}
+.public-booking>p{font-size:13px}
+.honey-field{position:absolute;left:-10000px;top:-10000px;opacity:0;width:1px;height:1px}
+.live-mobile-nav{display:none}
+@media(max-width:1050px){.live-two{grid-template-columns:1fr}.live-appointment{grid-template-columns:48px minmax(0,1fr) auto}.auth-story{padding:35px}.auth-story .brand{margin-bottom:40px}}
+@media(max-width:700px){.live-auth{grid-template-columns:1fr}.auth-story{min-height:unset;padding:30px 23px}.auth-story .brand{margin-bottom:32px}.auth-story h1{font-size:31px}.auth-card{width:100%;margin:12px auto;padding:25px 22px}.live-shell .sidebar{display:none}.live-notice{padding:15px 18px}.live-mobile-nav{display:flex;position:fixed;z-index:35;bottom:0;left:0;right:0;background:#fff;justify-content:space-between;gap:2px;padding:9px 4px max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 17px #194c3c18}.live-mobile-nav button{flex:1;border:0;background:transparent;color:#4a765d;padding:12px 1px;font-size:10px;font-weight:700;border-radius:8px}.live-mobile-nav button.active{background:#e7f3eb;color:#15543d}.live-shell .main-content{padding-bottom:125px}.public-booking .online-form-panel{padding:20px}}
+@media(max-width:420px){.live-appointment{grid-template-columns:42px 1fr}.live-appointment .status{grid-column:2;justify-self:start}.live-actions{grid-column:1/-1}.live-notice{font-size:10px}}
