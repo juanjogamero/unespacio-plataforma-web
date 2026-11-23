@@ -1,23 +1,30 @@
 {
   "name": "unespacio-plataforma-web",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
-  "description": "Agenda de citas para pequeños negocios - prototipo de demostración",
+  "description": "Unespacio Citas: agenda responsive y backend PostgreSQL para pilotos",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
-    "test": "npm run build && node --test tests/booking.test.mjs",
+    "test": "npm run build && node --test tests/booking.test.mjs tests/server-domain.test.mjs tests/server-auth.test.mjs",
     "check": "npm run typecheck && npm test",
     "dev:build": "node scripts/build.mjs --development",
     "dev": "npm run dev:build && node scripts/serve.mjs",
-    "pages:build": "node scripts/build-pages.mjs"
+    "pages:build": "node scripts/build-pages.mjs",
+    "api": "node server/app.mjs",
+    "db:migrate": "node server/db.mjs",
+    "test:server": "node --test tests/server-domain.test.mjs tests/server-auth.test.mjs",
+    "test:integration": "node --test tests/server-integration.test.mjs"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
     "typescript": "~5.8.3"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
   }
 }
