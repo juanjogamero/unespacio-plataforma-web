@@ -4,7 +4,7 @@ import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 const ROOT_URL='https://juanjogamero.github.io/unespacio-plataforma-web/';
-const RELEASE='0.10.0';
+const RELEASE='0.11.0';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const retry=async(fn,attempts=24)=>{
  let last;for(let n=0;n<attempts;n++){
