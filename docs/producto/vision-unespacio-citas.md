@@ -109,11 +109,26 @@ Tampoco se debe añadir IA, pagos, facturación, CRM avanzado ni otros módulos 
 6. Una persona con poca experiencia digital puede identificar claramente las acciones esenciales del negocio.
 7. Las demostraciones se hacen con **datos ficticios**, nunca datos reales de clientes.
 
-## 8. Situación técnica actual: atención
+## 8. Situación técnica actual (versión de demostración 0.9.0)
 
-El repositorio `juanjogamero/unespacio-plataforma-web` contiene actualmente una copia técnica de la interfaz de **Unespacio Aula** con una primera identidad gráfica distinta. **Las funciones educativas que se ven públicamente no representan este producto de citas**, ni deben presentarse como funcionalidades aprobadas de Unespacio. La adaptación real de rutas, datos, perfiles, navegación, agenda y lógica de reservas sigue **pendiente de implementación y verificación**.
+La web pública **ya muestra Unespacio Citas**, no las pantallas de Unespacio Aula. El prototipo incluye una agenda, creación/edición/cancelación de citas, servicios, fichas de clientes habituales, preferencias, copia manual de mensajes y simulación de reserva online.
 
-La prioridad del siguiente desarrollo es sustituir la experiencia educativa por la **agenda de un pequeño negocio, alta manual de citas y clientes habituales**, y después abordar una reserva web simple. No retener alumnos, cursos, tareas o calificaciones por inercia técnica.
+**Implementado y comprobado solo en la demostración:**
+- Citas por teléfono, WhatsApp, en el local y online simulado en la misma agenda del navegador.
+- Prevención local de solapamientos para un profesional según el horario y la duración del servicio.
+- Alta manual sin cuenta ni email del cliente; edición, cancelación y repetición de citas.
+- Servicios con duración y precio orientativo; clientes con canal preferido.
+- Estado guardado en `localStorage` del navegador.
+- Pruebas automáticas del modelo y verificación del sitio en GitHub Pages con navegador real.
+
+**No implementado ni verificado en producción:**
+- Almacenamiento compartido en un servidor y sincronización entre distintos dispositivos.
+- Autenticación y separación de información de cada negocio.
+- Prevención transaccional de dobles reservas en base de datos.
+- Reservas externas reales a través de un enlace compartible.
+- Integración oficial con WhatsApp y envío automático de mensajes.
+
+Se prohíbe utilizar datos reales en esta demo. Los ejemplos precargados son ficticios; el producto aún no es apto para un negocio real.
 
 ## 9. Registro de decisiones y pendientes
 
@@ -129,9 +144,14 @@ La prioridad del siguiente desarrollo es sustituir la experiencia educativa por 
 - Preferencia de canal y mensaje para copiar por WhatsApp.
 - Reserva online sin app.
 
-**No implementado ni verificado en el producto de citas:**
-- Agenda unificada con disponibilidad persistente.
+**Implementado en la demo local (sin servidor):**
+- Agenda con todos los canales y validación de huecos en el navegador.
+- Fichas mínimas de clientes y alta manual de citas.
+- Simulación de reserva online en el mismo navegador.
+
+**Pendiente de producción:**
+- Sincronización y almacenamiento compartido seguros.
 - Prevención de doble reserva desde servidor.
-- Fichas de clientes y reserva manual funcional.
-- Reserva online para clientes externos.
+- Autenticación y aislamiento de negocios.
+- Reserva online externa, disponible para cualquier cliente.
 - Integración oficial con WhatsApp.
