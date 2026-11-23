@@ -274,3 +274,36 @@ p{line-height:1.6}
 @media(max-width:1050px){.live-two{grid-template-columns:1fr}.live-appointment{grid-template-columns:48px minmax(0,1fr) auto}.auth-story{padding:35px}.auth-story .brand{margin-bottom:40px}}
 @media(max-width:700px){.live-auth{grid-template-columns:1fr}.auth-story{min-height:unset;padding:30px 23px}.auth-story .brand{margin-bottom:32px}.auth-story h1{font-size:31px}.auth-card{width:100%;margin:12px auto;padding:25px 22px}.live-shell .sidebar{display:none}.live-notice{padding:15px 18px}.live-mobile-nav{display:flex;position:fixed;z-index:35;bottom:0;left:0;right:0;background:#fff;justify-content:space-between;gap:2px;padding:9px 4px max(8px,env(safe-area-inset-bottom));box-shadow:0 -4px 17px #194c3c18}.live-mobile-nav button{flex:1;border:0;background:transparent;color:#4a765d;padding:12px 1px;font-size:10px;font-weight:700;border-radius:8px}.live-mobile-nav button.active{background:#e7f3eb;color:#15543d}.live-shell .main-content{padding-bottom:125px}.public-booking .online-form-panel{padding:20px}}
 @media(max-width:420px){.live-appointment{grid-template-columns:42px 1fr}.live-appointment .status{grid-column:2;justify-self:start}.live-actions{grid-column:1/-1}.live-notice{font-size:10px}}
+
+/* Centro de automatizaciones: demostración honesta, sin mensajes enviados */
+.automation-warning{display:flex;gap:11px;align-items:flex-start;padding:15px 17px;margin:-5px 0 20px;background:#f0f6f0;border:1px solid #d9e7db;border-radius:12px;color:#4b765b;font-size:12px;line-height:1.55}
+.automation-warning .ico{color:#40866e}
+.automation-features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-bottom:20px}
+.automation-feature{display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px;background:#fff;border:1px solid #e3ece4;border-radius:15px;padding:20px;box-shadow:0 6px 22px #194c3410}
+.automation-icon{width:40px;height:40px;display:grid;place-items:center;color:#297057;background:#e5f1e8;border-radius:12px;flex:none}
+.automation-content{flex:1;min-width:160px}
+.automation-feature h3{font-size:14px;margin:0 0 8px}
+.automation-feature p{color:#789081;font-size:12px;margin:0 0 11px}
+.automation-count{font-size:10px;color:#468366;font-weight:800}
+.automation-switch{font-size:10px;font-weight:800;border:1px solid #d2e0d6;border-radius:8px;color:#6c796d;background:#f1f4f0;padding:9px 10px}
+.automation-switch.on{background:#e3f1e7;border-color:#bed9c8;color:#216b4e}
+.automation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin:0 0 18px;align-items:start}
+.automation-panel .panel-head{padding:22px 21px 15px}
+.automation-tasks{padding:3px 20px 17px;display:grid;gap:8px}
+.automation-task{display:flex;align-items:center;gap:11px;padding:13px 10px;border:1px solid #e4ece5;border-radius:10px;min-width:0}
+.automation-task>div:not(.task-marker){flex:1;min-width:0}
+.task-marker{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:8px;background:#e8f5ec;color:#317658}
+.automation-task strong,.waitlist-row strong{font-size:12px;color:#304c3a;display:block}
+.automation-task small,.waitlist-row small{font-size:10px;line-height:1.5;color:#829286;display:block;margin-top:3px}
+.automation-task button,.waitlist-row button{display:inline-flex;align-items:center;gap:5px;background:transparent;border:0;color:#347459;font-size:11px;font-weight:800;flex:none;padding:8px 0}
+.automation-task button .ico,.waitlist-row button .ico{height:15px;width:15px}
+.automation-foot{border-top:1px solid #e6eee6;margin:0;padding:16px 20px}
+.automation-panel .muted{padding:5px 21px 15px}
+.automation-panel .automation-foot.muted{padding:15px 21px}
+.waitlist-list{display:grid;gap:9px;padding:2px 20px 20px}
+.waitlist-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid #e4ebe5;border-radius:10px}
+.automation-wait-form{padding:0 21px 21px}
+.automation-wait-form .field{margin-bottom:13px}
+@media(max-width:1250px){.automation-features{grid-template-columns:1fr}.automation-feature{align-items:center}.automation-feature .automation-switch{margin-left:auto}}
+@media(max-width:950px){.automation-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.automation-feature{padding:15px}.automation-task{align-items:flex-start;flex-wrap:wrap}.automation-task button{margin-left:43px}.automation-panel .panel-head{padding:19px 16px 13px}.automation-tasks,.waitlist-list{padding-inline:14px}.automation-wait-form{padding:0 15px 18px}.automation-foot{padding:12px 15px}.automation-feature .automation-switch{font-size:10px}}
