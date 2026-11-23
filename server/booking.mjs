@@ -1,5 +1,7 @@
 import {database,transaction} from './db.mjs';
-import {assert,validDay,validUUID,nonEmpty,validPhone,minute,hhmm,localDate,daysFrom,weekday,validateWindow,isAvailableWindow,SOURCES} from './domain.mjs';
+import {assert,validDay,validUUID,nonEmpty,validPhone,minute,hhmm,localDate,daysFrom,weekday,validateWindow,isAvailableWindow,SOURCES,validEmail} from './domain.mjs';
+
+import {queueOwnerRequest,queueWaitlistForCancellation} from './automations.mjs';
 
 const rows=async(db,sql,params)=> (await db.query(sql,params)).rows;
 const one=async(db,sql,params)=> (await db.query(sql,params)).rows[0]??null;
@@ -86,7 +88,11 @@ export async function saveManual(businessId,input,editingId=null){
    const owned=await one(db,'SELECT id FROM customers WHERE business_id=$1 AND id=$2',[businessId,customerId]);
    assert(Boolean(owned),'Cliente de otro negocio o inexistente',404);
   }else{
-   const c=await one(db,'INSERT INTO customers(business_id,name,phone,preference) VALUES($1,$2,$3,$4) RETURNING id',[businessId,input.clientName.trim(),input.phone||null,input.channel]);customerId=c.id;
+   const mail=input.email?String(input.email).trim():null;
+   const opted=input.reminderConsent===true;
+   if(opted)assert(validEmail(mail),'Se requiere un email válido para los recordatorios');
+   if(mail)assert(validEmail(mail),'El correo electrónico del cliente es incorrecto');
+   const c=await one(db,'INSERT INTO customers(business_id,name,phone,preference,email,reminder_consent) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',[businessId,input.clientName.trim(),input.phone||null,input.channel,mail,opted]);customerId=c.id;
   }
   if(editingId){
    const edited=await one(db,"UPDATE appointments SET customer_id=$3,service_id=$4,professional_id=$5,day=$6::date,start_min=$7,end_min=$8,source=$9 WHERE business_id=$1 AND id=$2 AND status='confirmada' RETURNING id",[businessId,editingId,customerId,input.serviceId,input.professionalId,input.day,start,end,input.channel]);
@@ -99,8 +105,15 @@ export async function saveManual(businessId,input,editingId=null){
 }
 export async function cancel(businessId,id){
  assert(validUUID(id),'Cita incorrecta');
- const changed=await one(database(),"UPDATE appointments SET status='cancelada' WHERE business_id=$1 AND id=$2 AND status IN ('confirmada','pendiente') RETURNING id",[businessId,id]);
- assert(changed,'No se encuentra esa cita activa',404);return {id:changed.id,status:'cancelada'};
+ return transaction(async db=>{
+  const original=await one(db,"SELECT id,day::text,start_min,end_min,professional_id,status FROM appointments WHERE business_id=$1 AND id=$2 AND status IN ('confirmada','pendiente') FOR UPDATE",[businessId,id]);
+  assert(original,'No se encuentra esa cita activa',404);
+  await db.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',[businessId,original.day]);
+  await db.query("UPDATE appointments SET status='cancelada' WHERE business_id=$1 AND id=$2",[businessId,id]);
+  await db.query("UPDATE notification_queue SET status='cancelled' WHERE business_id=$1 AND appointment_id=$2 AND status='queued'",[businessId,id]);
+  if(original.status==='confirmada')await queueWaitlistForCancellation(db,businessId,original);
+  return {id,status:'cancelada'};
+ });
 }
 export async function confirmRequest(businessId,id){
  assert(validUUID(id),'Cita incorrecta');
@@ -119,13 +132,18 @@ export async function requestPublic(slug,input){
  assert(!input.website,'Solicitud no válida',400);
  assert(input.acceptedPrivacy===true,'Debes aceptar la información de privacidad para solicitar una cita');
  assert(nonEmpty(input.name,2,100)&&validPhone(input.phone),'Escribe tu nombre y un teléfono válido');
+ const email=input.email?String(input.email).trim():null;
+ if(email)assert(validEmail(email),'Correo de contacto incorrecto');
+ const reminderConsent=input.reminderConsent===true;
+ if(reminderConsent)assert(validEmail(email),'Para recibir recordatorios necesitas un correo válido');
  const today=localDate(business.timezone);
  assert(validDay(input.day)&&input.day>=today&&input.day<=daysFrom(today,45),'Selecciona una fecha próxima');
  assert(validUUID(input.professionalId)&&validUUID(input.serviceId),'Servicio o profesional incorrecto');
  try{return await transaction(async db=>{
   const {start,end}=await windowRules(db,business.id,input.professionalId,input.serviceId,input.day,input.time);
-  const client=await one(db,"INSERT INTO customers(business_id,name,phone,preference) VALUES($1,$2,$3,'online') RETURNING id",[business.id,input.name.trim(),input.phone.trim()]);
+  const client=await one(db,"INSERT INTO customers(business_id,name,phone,preference,email,reminder_consent) VALUES($1,$2,$3,'online',$4,$5) RETURNING id",[business.id,input.name.trim(),input.phone.trim(),email,reminderConsent]);
   const request=await one(db,"INSERT INTO appointments(business_id,customer_id,professional_id,service_id,day,start_min,end_min,source,status) VALUES($1,$2,$3,$4,$5::date,$6,$7,'online','pendiente') RETURNING id",[business.id,client.id,input.professionalId,input.serviceId,input.day,start,end]);
+  await queueOwnerRequest(db,business.id,request.id);
   return {requestId:request.id,status:'pendiente',message:'Solicitud recibida; el negocio debe confirmarla antes de que la cita esté reservada.'};
  })}catch(e){throw dbConflict(e)}
 }
