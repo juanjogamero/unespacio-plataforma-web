@@ -92,9 +92,15 @@ CREATE TABLE IF NOT EXISTS appointments (
  FOREIGN KEY (business_id,service_id) REFERENCES services(business_id,id)
 );
 -- PostgreSQL impide doble reserva incluso con peticiones simultáneas, también desde distintos dispositivos.
-ALTER TABLE appointments ADD CONSTRAINT no_double_booking EXCLUDE USING gist (
- business_id WITH =, professional_id WITH =, day WITH =,
- int4range(start_min,end_min,'[)') WITH &&
-) WHERE(status='confirmada');
+DO $unspace$
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='no_double_booking' AND conrelid='appointments'::regclass) THEN
+  ALTER TABLE appointments ADD CONSTRAINT no_double_booking EXCLUDE USING gist (
+   business_id WITH =, professional_id WITH =, day WITH =,
+   int4range(start_min,end_min,'[)') WITH &&
+  ) WHERE(status='confirmada');
+ END IF;
+END;
+$unspace$;
 CREATE INDEX IF NOT EXISTS appointments_business_day_idx ON appointments(business_id,day);
 COMMIT;
