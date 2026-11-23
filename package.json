@@ -1,9 +1,9 @@
 {
   "name": "unespacio-plataforma-web",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
-  "description": "Unespacio Citas: agenda responsive y backend PostgreSQL para pilotos",
+  "description": "Unespacio Citas: agenda unificada y automatizaciones opcionales con correo",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "node scripts/build.mjs",
@@ -16,7 +16,8 @@
     "api": "node server/app.mjs",
     "db:migrate": "node server/db.mjs",
     "test:server": "node --test tests/server-domain.test.mjs tests/server-auth.test.mjs",
-    "test:integration": "node --test tests/server-integration.test.mjs"
+    "test:integration": "node --test tests/server-integration.test.mjs",
+    "worker": "node server/worker.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -25,6 +26,8 @@
     "typescript": "~5.8.3"
   },
   "dependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "luxon": "^3.7.2",
+    "nodemailer": "^7.0.10"
   }
 }
