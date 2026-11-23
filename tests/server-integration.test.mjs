@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {database,migrate} from '../server/db.mjs';
 import {register,authenticate,requireCSRF} from '../server/auth.mjs';
+import {daysFrom,weekday,localDate} from '../server/domain.mjs';
 import {saveManual,agenda,businessBySlug,requestPublic,confirmRequest,freeSlots,dbConflict} from '../server/booking.mjs';
 const slug='ci-unspace-'+Math.random().toString(36).slice(2,12);
 const slug2='ci-other-'+Math.random().toString(36).slice(2,12);
 const email=slug+'@example.invalid';
 const email2=slug2+'@example.invalid';
-const day='2027-03-15'; // lunes
+const today=localDate('Europe/Madrid');
+const day=daysFrom(today,((8-weekday(today))%7)||7); // próximo lunes, siempre dentro del horizonte de reserva
 test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes',async()=>{
  assert.ok(process.env.DATABASE_URL,'Requiere DATABASE_URL en CI');
  await migrate();
