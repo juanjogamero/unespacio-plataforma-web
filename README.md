@@ -1,4 +1,13 @@
-# Unespacio · Plataforma Web
+# Unespacio · Plataforma web de citas
+
+**Nueva dirección de producto (23/11/2026):** Unespacio es una plataforma de agenda y gestión de citas para pequeños negocios de servicios —especialmente barberías y peluquerías—, que unifica reservas por teléfono, WhatsApp, en persona y online sin obligar a los clientes a utilizar una aplicación. **El producto de citas aún no está implementado.**
+
+**Documento de referencia obligatorio:** [Visión de Unespacio, agenda unificada y atención a clientes poco digitalizados](docs/producto/vision-unespacio-citas.md).
+
+**Estado del sitio público:** es una copia técnica de Unespacio Aula con identidad gráfica nueva. Sus pantallas educativas son contenido heredado temporal y **no corresponden al nuevo producto**. La prioridad es sustituirlas por la agenda, el alta manual de citas y los clientes habituales.
+
+---
+
 
 Copia independiente de la interfaz TypeScript de Unespacio Aula, con identidad visual propia para **Unespacio**. El repositorio académico original no se modifica.
 
