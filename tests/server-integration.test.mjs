@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {database,migrate} from '../server/db.mjs';
 import {register,authenticate,requireCSRF} from '../server/auth.mjs';
 import {daysFrom,weekday,localDate} from '../server/domain.mjs';
+import {createApp} from '../server/app.mjs';
 import {saveManual,agenda,businessBySlug,requestPublic,confirmRequest,freeSlots,dbConflict} from '../server/booking.mjs';
 const slug='ci-unspace-'+Math.random().toString(36).slice(2,12);
 const slug2='ci-other-'+Math.random().toString(36).slice(2,12);
@@ -49,6 +50,30 @@ test('PostgreSQL: aislamiento multiempresa y exclusión de reservas concurrentes
   const confirmed=await confirmRequest(b1,pub.requestId);
   assert.equal(confirmed.status,'confirmada');
   await assert.rejects(requestPublic(slug,{name:'Otra persona',phone:'600 555 666',serviceId:svc,professionalId:pro,day,time:'11:10',acceptedPrivacy:true}),/ocupado/);
+  // E2E HTTP real: autenticación por cookie, CSRF y agenda separada por negocio.
+  const http=createApp();
+  await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));
+  try{
+   const base='http://127.0.0.1:'+http.address().port;
+   const cookie='unespacio_sid='+a.sid;
+   const me=await fetch(base+'/api/v1/me',{headers:{cookie}});
+   assert.equal(me.status,200);
+   const sessionHTTP=await me.json();
+   assert.equal(sessionHTTP.business.id,b1);
+   const withoutCSRF=await fetch(base+'/api/v1/appointments',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify({clientId:c,serviceId:svc,professionalId:pro,day,time:'16:00',channel:'telefono'})});
+   assert.equal(withoutCSRF.status,403);
+   const withCSRF=await fetch(base+'/api/v1/appointments',{method:'POST',headers:{cookie,'content-type':'application/json','x-csrf-token':sessionHTTP.csrfToken},body:JSON.stringify({clientId:c,serviceId:svc,professionalId:pro,day,time:'16:00',channel:'telefono'})});
+   assert.equal(withCSRF.status,201);
+   const privateDay=await fetch(base+'/api/v1/agenda?day='+day,{headers:{cookie}});
+   assert.equal(privateDay.status,200);
+   assert.equal((await privateDay.json()).appointments.length,3);
+   const publicView=await fetch(base+'/r/'+slug);
+   assert.equal(publicView.status,200);
+   assert.match(await publicView.text(),/Unespacio · Agenda de citas/);
+  }finally{
+   await new Promise(resolve=>http.close(resolve));
+  }
+
  }finally{
   if(b1)await database().query('DELETE FROM businesses WHERE id=$1',[b1]);
   if(b2)await database().query('DELETE FROM businesses WHERE id=$1',[b2]);
