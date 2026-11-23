@@ -107,15 +107,7 @@ CREATE INDEX IF NOT EXISTS appointments_business_day_idx ON appointments(busines
 -- Automatización opcional y transparente: el email es un canal adicional, nunca obligatorio.
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS reminder_consent boolean NOT NULL DEFAULT false;
-DO $
-BEGIN
- IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='customers_email_valid') THEN
-  ALTER TABLE customers ADD CONSTRAINT customers_email_valid CHECK(
-   email IS NULL OR (length(email) BETWEEN 5 AND 254 AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+
-)
-  );
- END IF;
-END $;
+-- Validación de email de contactos a cargo de la API; ningún correo es obligatorio.
 CREATE TABLE IF NOT EXISTS automation_settings (
  business_id uuid PRIMARY KEY REFERENCES businesses(id) ON DELETE CASCADE,
  owner_alerts_enabled boolean NOT NULL DEFAULT false,
