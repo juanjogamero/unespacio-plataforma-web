@@ -115,6 +115,13 @@ async function handleApi(req,res,url){
    return response(res,201,{id:row.rows[0].id});
   }
  }
+ if(parts[2]==='clients'&&parts[3]&&parts[4]==='last'&&parts.length===5&&method==='GET'){
+  const cid=checkedUUID(parts[3]);
+  const owned=await database().query('SELECT id FROM customers WHERE business_id=$1 AND id=$2',[id,cid]);
+  assert(owned.rowCount,'Cliente no encontrado',404);
+  const result=await database().query("SELECT service_id AS \"serviceId\",professional_id AS \"professionalId\",start_min AS \"startMinute\" FROM appointments WHERE business_id=$1 AND customer_id=$2 AND status='confirmada' ORDER BY day DESC,start_min DESC LIMIT 1",[id,cid]);
+  return response(res,200,{last:result.rows[0]??null});
+ }
  if(parts[2]==='clients'&&parts[3]&&parts.length===4&&method==='PATCH'){
   const cid=checkedUUID(parts[3]),b=await bodyJSON(req),name=trim(b.name),phone=b.phone?String(b.phone).trim():null,preference=b.preference||'telefono';
   assert(!phone||validPhone(phone),'Teléfono incorrecto');assert(['telefono','whatsapp','local','online'].includes(preference),'Preferencia incorrecta');
